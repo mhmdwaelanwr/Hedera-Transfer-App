@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "122927014612",
+    "project_id": "hadera-cd471",
+    "storage_bucket": "hadera-cd471.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122927014612:android:796a4c8f9c80cc70dd1141",
+        "android_client_info": {
+          "package_name": "anwar.mlsa.hadera.aou"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHIxQPVqILuFdqW5ADcI3h7Cp6cGDYEsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
