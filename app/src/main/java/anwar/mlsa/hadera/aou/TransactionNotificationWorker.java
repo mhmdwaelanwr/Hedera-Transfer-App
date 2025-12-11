@@ -6,20 +6,18 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.google.gson.Gson;
-
 import java.io.IOException;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import timber.log.Timber;
 
 public class TransactionNotificationWorker extends Worker {
 
@@ -35,7 +33,8 @@ public class TransactionNotificationWorker extends Worker {
     public Result doWork() {
         String accountId = WalletStorage.getAccountId(getApplicationContext());
         if (accountId == null || accountId.isEmpty()) {
-            return Result.success(); // No account, no work to do
+            Timber.d("No account ID found, skipping work.");
+            return Result.success();
         }
 
         OkHttpClient client = new OkHttpClient();
@@ -44,26 +43,27 @@ public class TransactionNotificationWorker extends Worker {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                Log.e("TransactionWorker", "API call failed with code: " + response.code());
-                return Result.retry(); // Something went wrong, retry later
+                Timber.e("API call failed with code: %d", response.code());
+                return Result.retry();
             }
 
             String responseBody = response.body().string();
             HistoryApiParser.HistoryResponse historyResponse = HistoryApiParser.parse(responseBody, accountId);
 
             if (historyResponse != null && !historyResponse.transactions.isEmpty()) {
-                TransferActivity.Transaction latestTransaction = historyResponse.transactions.get(0);
+                Transaction latestTransaction = historyResponse.transactions.get(0);
                 String lastNotifiedTimestamp = getLastNotifiedTimestamp();
 
                 if (lastNotifiedTimestamp == null || latestTransaction.date.compareTo(lastNotifiedTimestamp) > 0) {
                     if ("Received".equals(latestTransaction.type)) {
+                        Timber.i("New transaction received, sending notification.");
                         sendNotification("Transaction Received", "You received " + latestTransaction.amount);
                         saveLastNotifiedTimestamp(latestTransaction.date);
                     }
                 }
             }
         } catch (IOException e) {
-            Log.e("TransactionWorker", "IOException during API call", e);
+            Timber.e(e, "IOException during API call");
             return Result.retry();
         }
 

@@ -8,6 +8,9 @@
     android:layout_marginEnd="8dp"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
+    android:hapticFeedbackEnabled="true"
+    android:clickable="true"
+    android:focusable="true"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp">
 
@@ -32,6 +35,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:padding="16dp"
+            android:fontFamily="@font/segoe_ui_semibold"
             android:textAppearance="?attr/textAppearanceBody1"
             android:textColor="@android:color/white" />
 

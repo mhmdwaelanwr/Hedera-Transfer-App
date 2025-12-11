@@ -70,7 +70,6 @@ public class HashScanActivity extends AppCompatActivity {
                 @SuppressWarnings("deprecation")
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                     super.onReceivedError(view, errorCode, description, failingUrl);
-                    // This is for older APIs
                      showErrorView();
                 }
 
@@ -78,7 +77,6 @@ public class HashScanActivity extends AppCompatActivity {
                 @Override
                 public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                     super.onReceivedError(view, request, error);
-                    // This is for newer APIs
                      showErrorView();
                 }
             });

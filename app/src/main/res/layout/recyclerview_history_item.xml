@@ -7,6 +7,9 @@
     android:layout_marginEnd="16dp"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
+    android:hapticFeedbackEnabled="true"
+    android:clickable="true"
+    android:focusable="true"
     app:cardElevation="2dp"
     app:cardCornerRadius="8dp">
 
@@ -29,10 +32,11 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceListItem"
+            android:fontFamily="@font/segoe_ui_semibold"
             android:textStyle="bold"
             app:layout_constraintStart_toEndOf="@id/type_imageview"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/amount_textview"/>
+            app:layout_constraintEnd_toStartOf="@id/amount_textview"/>
 
         <TextView
             android:id="@+id/memo_textview"
@@ -40,10 +44,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceBody2"
+            android:fontFamily="@font/segoe_ui_regular"
             android:textColor="?android:attr/textColorSecondary"
             app:layout_constraintStart_toEndOf="@id/type_imageview"
-            app:layout_constraintTop_toBottomOf="@id/party_textview"
-            app:layout_constraintEnd_toStartOf="@+id/amount_textview"/>
+            app:layout_constraintTop_toBottomOf="@+id/party_textview"
+            app:layout_constraintEnd_toStartOf="@id/amount_textview"/>
         
         <TextView
             android:id="@+id/date_textview"
@@ -51,6 +56,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceBody2"
+            android:fontFamily="@font/segoe_ui_regular"
             android:textColor="?android:attr/textColorSecondary"
             app:layout_constraintStart_toEndOf="@id/type_imageview"
             app:layout_constraintTop_toBottomOf="@id/memo_textview" />
@@ -60,6 +66,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceBody1"
+            android:fontFamily="@font/roboto_mono"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -70,6 +77,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceCaption"
+            android:fontFamily="@font/segoe_ui_semibold"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/amount_textview" />
@@ -80,6 +88,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="?attr/textAppearanceCaption"
+            android:fontFamily="@font/roboto_mono"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/status_textview" />
 

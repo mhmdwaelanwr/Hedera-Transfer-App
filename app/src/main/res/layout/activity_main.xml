@@ -1,128 +1,177 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    tools:context=".MainActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/app_logo"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/hedera_logo"
+        android:hapticFeedbackEnabled="true"
+        app:layout_constraintBottom_toTopOf="@+id/welcome_message"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/welcome_message"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:text="Welcome Back"
+        android:textAppearance="?attr/textAppearanceHeadline5"
+        android:fontFamily="@font/segoe_ui_semibold"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.3" />
 
-        <ImageView
-            android:id="@+id/app_logo"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@mipmap/ic_launcher_round"
-            android:layout_marginBottom="16dp"/>
-
-        <TextView
-            android:id="@+id/welcome_message"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome Back"
-            android:textAppearance="?attr/textAppearanceHeadline5" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            android:text="Connect to your Hedera wallet" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/username_layout"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:endIconDrawable="@drawable/ic_paste"
-            app:endIconMode="custom"
-            app:startIconDrawable="@drawable/ic_account">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/username"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Account ID" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/password_layout"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:passwordToggleEnabled="true"
-            app:passwordToggleTint="?attr/colorOnSurface"
-            app:startIconDrawable="@drawable/ic_key">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Private Key"
-                android:inputType="textPassword" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone" />
-
-        <Button
-            android:id="@+id/login_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:padding="12dp"
-            android:text="Connect Wallet" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/welcome_subtitle"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="32dp"
+        android:text="Connect to your Hedera wallet"
+        android:fontFamily="@font/segoe_ui_regular"
+        app:layout_constraintTop_toBottomOf="@+id/welcome_message"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/account_id_layout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginTop="16dp"
+        android:hapticFeedbackEnabled="true"
+        app:endIconDrawable="@drawable/ic_paste"
+        app:endIconMode="custom"
+        app:layout_constraintTop_toBottomOf="@+id/welcome_subtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:startIconDrawable="@drawable/ic_account">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/account_id_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Account ID"
+            android:fontFamily="@font/roboto_mono" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/private_key_layout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hapticFeedbackEnabled="true"
+        app:layout_constraintTop_toBottomOf="@+id/account_id_layout"
+        app:layout_constraintStart_toStartOf="@id/account_id_layout"
+        app:layout_constraintEnd_toEndOf="@id/account_id_layout"
+        app:passwordToggleEnabled="true"
+        app:passwordToggleTint="?attr/colorOnSurface"
+        app:startIconDrawable="@drawable/ic_key">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/private_key_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Private Key"
+            android:inputType="textPassword"
+            android:fontFamily="@font/roboto_mono" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+    
+    <TextView
+        android:id="@+id/security_warning"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Warning: Pasting your private key is not recommended. Consider using a more secure connection method."
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textColor="?attr/colorError"
         android:gravity="center"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:fontFamily="@font/segoe_ui_regular"
+        app:layout_constraintTop_toBottomOf="@+id/private_key_layout"
+        app:layout_constraintStart_toStartOf="@id/private_key_layout"
+        app:layout_constraintEnd_toEndOf="@+id/private_key_layout"/>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp">
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/security_warning"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Don't have an account? "/>
+    <Button
+        android:id="@+id/login_button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:padding="12dp"
+        android:text="Connect Wallet"
+        android:hapticFeedbackEnabled="true"
+        android:fontFamily="@font/segoe_ui_semibold"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar"
+        app:layout_constraintStart_toStartOf="@+id/private_key_layout"
+        app:layout_constraintEnd_toEndOf="@+id/private_key_layout"/>
 
-            <TextView
-                android:id="@+id/register_now"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Register Now"
-                android:textColor="?attr/colorPrimary"/>
-        </LinearLayout>
+    <LinearLayout
+        android:id="@+id/register_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:hapticFeedbackEnabled="true"
+        app:layout_constraintBottom_toTopOf="@+id/mlsa_eg"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
-            android:id="@+id/mlsa_eg"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MLSA Egypt Clubs"
-            android:textColor="@android:color/holo_blue_light"
-            android:padding="8dp"/>
+            android:fontFamily="@font/segoe_ui_regular"
+            android:text="Don't have an account? " />
 
+        <TextView
+            android:id="@+id/register_now"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hapticFeedbackEnabled="true"
+            android:text="Register Now"
+            android:fontFamily="@font/segoe_ui_semibold"
+            android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
-</RelativeLayout>
+    <TextView
+        android:id="@+id/mlsa_eg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="MLSA Egypt Clubs"
+        android:hapticFeedbackEnabled="true"
+        android:textColor="@color/mlsa_egypt_clubs_color"
+        android:fontFamily="@font/us_bill"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

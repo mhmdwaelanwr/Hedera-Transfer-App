@@ -27,7 +27,7 @@ import java.util.Locale;
 public class TransactionDetailsActivity extends AppCompatActivity {
 
     private MaterialCardView transactionDetailsCard;
-    private TransferActivity.Transaction transaction;
+    private Transaction transaction;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +45,7 @@ public class TransactionDetailsActivity extends AppCompatActivity {
 
         String transactionJson = getIntent().getStringExtra("transaction");
         if (transactionJson != null) {
-            transaction = new Gson().fromJson(transactionJson, TransferActivity.Transaction.class);
+            transaction = new Gson().fromJson(transactionJson, Transaction.class);
         }
 
         if (transaction != null) {
@@ -70,7 +70,6 @@ public class TransactionDetailsActivity extends AppCompatActivity {
 
         type.setText(transaction.type);
 
-        // Clean up prefixes that might exist in the data
         String cleanParty = transaction.party.replaceFirst("(?i)to: ", "").replaceFirst("(?i)from: ", "");
         party.setText(cleanParty);
 
@@ -85,7 +84,6 @@ public class TransactionDetailsActivity extends AppCompatActivity {
         status.setText(transaction.status);
 
         if (transaction.fee != null && !transaction.fee.isEmpty()) {
-            // Clean up prefix
             String cleanFee = transaction.fee.replaceFirst("(?i)fee: ", "");
             fee.setText(cleanFee);
             feeLabel.setVisibility(View.VISIBLE);

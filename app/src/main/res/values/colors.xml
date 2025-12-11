@@ -14,4 +14,6 @@
     <color name="colorSent">#FFD32F2F</color>
     <color name="colorReceived">#FF388E3C</color>
     <color name="yellow">#FFEB3B</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="mlsa_egypt_clubs_color">@android:color/holo_blue_light</color>
 </resources>

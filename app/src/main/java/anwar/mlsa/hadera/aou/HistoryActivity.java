@@ -55,7 +55,7 @@ public class HistoryActivity extends AppCompatActivity {
     private static final String HISTORY_TAG = "history_tag";
 
     private final ArrayList<Object> displayList = new ArrayList<>();
-    private final ArrayList<TransferActivity.Transaction> masterTransactionList = new ArrayList<>();
+    private final ArrayList<Transaction> masterTransactionList = new ArrayList<>();
 
     private HistoryAdapter adapter;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -77,7 +77,7 @@ public class HistoryActivity extends AppCompatActivity {
     private String nextUrl = null;
     private CharSequence originalToolbarTitle;
     private ActivityResultLauncher<Intent> filePickerLauncher;
-    private String currentExportFormat = "csv"; // Default format
+    private String currentExportFormat = "csv";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -304,7 +304,7 @@ public class HistoryActivity extends AppCompatActivity {
             masterTransactionList.clear();
         }
 
-        LinkedHashSet<TransferActivity.Transaction> transactionSet = new LinkedHashSet<>(masterTransactionList);
+        LinkedHashSet<Transaction> transactionSet = new LinkedHashSet<>(masterTransactionList);
         transactionSet.addAll(historyResponse.transactions);
         masterTransactionList.clear();
         masterTransactionList.addAll(transactionSet);
@@ -317,9 +317,9 @@ public class HistoryActivity extends AppCompatActivity {
         displayList.clear();
         String query = (searchView != null && searchView.getQuery() != null) ? searchView.getQuery().toString().toLowerCase() : "";
 
-        List<TransferActivity.Transaction> viewableTransactions = getViewableTransactions();
+        List<Transaction> viewableTransactions = getViewableTransactions();
         
-        List<TransferActivity.Transaction> filteredList;
+        List<Transaction> filteredList;
         if (query.isEmpty()) {
             filteredList = new ArrayList<>(viewableTransactions);
         } else {
@@ -357,7 +357,7 @@ public class HistoryActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private List<TransferActivity.Transaction> getViewableTransactions() {
+    private List<Transaction> getViewableTransactions() {
         return new ArrayList<>(masterTransactionList);
     }
     
@@ -427,7 +427,7 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void exportToFile(Uri uri) {
-        List<TransferActivity.Transaction> transactionsToExport = getViewableTransactions();
+        List<Transaction> transactionsToExport = getViewableTransactions();
         if (transactionsToExport.isEmpty()) {
             Toast.makeText(this, "No history to export.", Toast.LENGTH_SHORT).show();
             return;
@@ -489,7 +489,7 @@ public class HistoryActivity extends AppCompatActivity {
             if (holder.getItemViewType() == TYPE_HEADER) {
                 ((HeaderViewHolder) holder).bind((String) items.get(position));
             } else {
-                ((ItemViewHolder) holder).bind((TransferActivity.Transaction) items.get(position));
+                ((ItemViewHolder) holder).bind((Transaction) items.get(position));
             }
         }
 
@@ -522,7 +522,7 @@ public class HistoryActivity extends AppCompatActivity {
                 fee = itemView.findViewById(R.id.fee);
             }
 
-            void bind(TransferActivity.Transaction transaction) {
+            void bind(Transaction transaction) {
                 transactionType.setText(transaction.type);
                 date.setText(transaction.date);
                 amount.setText(transaction.amount);

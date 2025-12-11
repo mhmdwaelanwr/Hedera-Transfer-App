@@ -11,15 +11,14 @@ import java.util.ArrayList;
 
 public class BlogApiParser {
 
-    public static ArrayList<TransferActivity.Post> parse(String response) {
+    public static ArrayList<Post> parse(String response) {
         try {
             JSONObject jsonResponse = new JSONObject(response);
             if (jsonResponse.getBoolean("success")) {
                 JSONArray postsArray = jsonResponse.getJSONArray("posts");
-                return new Gson().fromJson(postsArray.toString(), new TypeToken<ArrayList<TransferActivity.Post>>() {}.getType());
+                return new Gson().fromJson(postsArray.toString(), new TypeToken<ArrayList<Post>>() {}.getType());
             }
         } catch (JSONException e) {
-            // Log the error
         }
         return new ArrayList<>();
     }

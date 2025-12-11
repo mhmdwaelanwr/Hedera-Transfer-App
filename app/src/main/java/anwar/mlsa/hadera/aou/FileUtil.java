@@ -114,13 +114,13 @@ public class FileUtil {
         }
     }
 
-    public static void saveClearedHistory(Context context, String fileName, ArrayList<TransferActivity.Transaction> clearedTransactions) {
+    public static void saveClearedHistory(Context context, String fileName, ArrayList<Transaction> clearedTransactions) {
         Gson gson = new Gson();
         String json = gson.toJson(clearedTransactions);
         saveToFile(context, fileName, json);
     }
 
-    public static ArrayList<TransferActivity.Transaction> loadClearedHistory(Context context, String fileName) {
+    public static ArrayList<Transaction> loadClearedHistory(Context context, String fileName) {
         String directory = getPackageDataDir(context);
         if (directory != null) {
             File file = new File(directory, fileName);
@@ -128,7 +128,7 @@ public class FileUtil {
                 String json = readFile(file.getAbsolutePath());
                 if (json != null && !json.isEmpty()) {
                     Gson gson = new Gson();
-                    Type type = new TypeToken<ArrayList<TransferActivity.Transaction>>() {}.getType();
+                    Type type = new TypeToken<ArrayList<Transaction>>() {}.getType();
                     return gson.fromJson(json, type);
                 }
             }

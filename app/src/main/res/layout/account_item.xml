@@ -14,6 +14,8 @@
         android:layout_marginEnd="8dp"
         android:ellipsize="end"
         android:maxLines="1"
+        android:hapticFeedbackEnabled="true"
+        android:fontFamily="@font/roboto_mono"
         android:textAppearance="?attr/textAppearanceBody1" />
 
     <Button
@@ -22,6 +24,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Switch"
+        android:fontFamily="@font/segoe_ui_semibold"
+        android:hapticFeedbackEnabled="true"
+        android:textStyle="bold"
         android:visibility="gone"/>
 
     <TextView
@@ -32,6 +37,7 @@
         android:text="Current"
         android:textAppearance="?attr/textAppearanceCaption"
         android:textColor="?attr/colorPrimary"
+        android:fontFamily="@font/segoe_ui_semibold"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -41,6 +47,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="?attr/colorError"
+        android:hapticFeedbackEnabled="true"
+        android:fontFamily="@font/segoe_ui_semibold"
         android:text="Delete"/>
 
 </LinearLayout>

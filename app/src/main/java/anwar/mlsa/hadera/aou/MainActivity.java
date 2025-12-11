@@ -27,10 +27,10 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextInputEditText usernameEditText;
-    private TextInputEditText passwordEditText;
-    private TextInputLayout usernameLayout;
-    private TextInputLayout passwordLayout;
+    private TextInputEditText accountIdEditText;
+    private TextInputEditText privateKeyEditText;
+    private TextInputLayout accountIdLayout;
+    private TextInputLayout privateKeyLayout;
     private Button loginButton;
     private ProgressBar progressBar;
     private TextView welcomeMessage;
@@ -53,10 +53,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeAndSetupListeners() {
-        usernameEditText = findViewById(R.id.username);
-        passwordEditText = findViewById(R.id.password);
-        usernameLayout = findViewById(R.id.username_layout);
-        passwordLayout = findViewById(R.id.password_layout);
+        accountIdEditText = findViewById(R.id.account_id_input);
+        privateKeyEditText = findViewById(R.id.private_key_input);
+        accountIdLayout = findViewById(R.id.account_id_layout);
+        privateKeyLayout = findViewById(R.id.private_key_layout);
         loginButton = findViewById(R.id.login_button);
         progressBar = findViewById(R.id.progress_bar);
         TextView registerNow = findViewById(R.id.register_now);
@@ -79,17 +79,17 @@ public class MainActivity extends AppCompatActivity {
             openUrl("https://mlsaegypt.org/");
         });
 
-        usernameLayout.setEndIconOnClickListener(v -> {
+        accountIdLayout.setEndIconOnClickListener(v -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (clipboard != null && clipboard.hasPrimaryClip()) {
                 ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
                 if (item != null) {
-                    usernameEditText.setText(item.getText());
+                    accountIdEditText.setText(item.getText());
                 }
             }
         });
 
-        usernameEditText.addTextChangedListener(new TextWatcher() {
+        accountIdEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
@@ -99,9 +99,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!s.toString().trim().matches("^0\\.0\\.[0-9]+$")) {
-                    usernameLayout.setError("Valid Account ID is required.");
+                    accountIdLayout.setError("Valid Account ID is required.");
                 } else {
-                    usernameLayout.setError(null);
+                    accountIdLayout.setError(null);
                 }
             }
         });
@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             public void onErrorResponse(String tag, String message) {
                 if ("verify_tag".equals(tag)) {
                     setLoadingState(false);
-                    passwordLayout.setError("Network Error: " + message);
+                    privateKeyLayout.setError("Network Error: " + message);
                 }
             }
         };
@@ -136,8 +136,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleLogin() {
-        String accountId = usernameEditText.getText().toString().trim();
-        String privateKey = passwordEditText.getText().toString().trim();
+        String accountId = accountIdEditText.getText().toString().trim();
+        String privateKey = privateKeyEditText.getText().toString().trim();
 
         if (!validateInputs(accountId, privateKey)) {
             return;
@@ -152,17 +152,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean validateInputs(String accountId, String privateKey) {
         boolean isValid = true;
         if (accountId.isEmpty() || !accountId.matches("^0\\.0\\.[0-9]+$")) {
-            usernameLayout.setError("Valid Account ID is required.");
+            accountIdLayout.setError("Valid Account ID is required.");
             isValid = false;
         } else {
-            usernameLayout.setError(null);
+            accountIdLayout.setError(null);
         }
 
         if (privateKey.isEmpty()) {
-            passwordLayout.setError("Private Key is required.");
+            privateKeyLayout.setError("Private Key is required.");
             isValid = false;
         } else {
-            passwordLayout.setError(null);
+            privateKeyLayout.setError(null);
         }
         return isValid;
     }
@@ -171,8 +171,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             VerificationResponse verificationResponse = new Gson().fromJson(response, VerificationResponse.class);
             if (verificationResponse != null && verificationResponse.valid) {
-                String accountId = usernameEditText.getText().toString().trim();
-                String privateKey = passwordEditText.getText().toString().trim();
+                String accountId = accountIdEditText.getText().toString().trim();
+                String privateKey = privateKeyEditText.getText().toString().trim();
 
                 List<WalletStorage.Account> accounts = WalletStorage.getAccounts(this);
                 int accountIndex = -1;
@@ -197,19 +197,19 @@ public class MainActivity extends AppCompatActivity {
                         finishAffinity();
                     } else {
                         // Failed to add account (max limit reached)
-                        passwordLayout.setError("Cannot add more accounts. Maximum of 6 accounts reached.");
+                        privateKeyLayout.setError("Cannot add more accounts. Maximum of 6 accounts reached.");
                     }
                 }
             } else {
                 String errorMessage = verificationResponse != null ? (verificationResponse.message != null ? verificationResponse.message : verificationResponse.error) : "Invalid credentials.";
-                passwordLayout.setError(errorMessage != null ? errorMessage : "Invalid credentials.");
+                privateKeyLayout.setError(errorMessage != null ? errorMessage : "Invalid credentials.");
             }
         } catch (JsonSyntaxException e) {
             Log.e("MainActivity_JsonError", "Server sent invalid JSON.", e);
-            passwordLayout.setError("Error: Could not understand server response.");
+            privateKeyLayout.setError("Error: Could not understand server response.");
         } catch (Exception e) {
             Log.e("MainActivity_ResponseError", "Unexpected error during response handling.", e);
-            passwordLayout.setError("An unexpected error occurred.");
+            privateKeyLayout.setError("An unexpected error occurred.");
         }
     }
 

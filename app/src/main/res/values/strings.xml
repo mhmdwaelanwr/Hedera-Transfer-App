@@ -1,3 +1,16 @@
 <resources>
-	<string name="app_name" translatable="false">Microsoft WEB3</string>
+	<string name="app_name" translatable="false">Hedera WEB3</string>
+
+    <!-- Biometric Prompt -->
+    <string name="biometric_auth_title">Biometric Authentication</string>
+    <string name="biometric_auth_subtitle">Confirm transaction with your biometric credential</string>
+    <string name="biometric_auth_cancel">Cancel</string>
+
+    <!-- Idpay Activity -->
+    <string name="verified_recipient">Verified: %1$s</string>
+    <string name="confirm_transaction_title">Confirm Transaction</string>
+    <string name="confirm_transaction_message">Are you sure you want to send %1$s ℏ to %2$s?</string>
+    <string name="send_button_text">Send</string>
+    <string name="cancel_button_text">Cancel</string>
+
 </resources>

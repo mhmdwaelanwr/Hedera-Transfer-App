@@ -17,6 +17,8 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:hapticFeedbackEnabled="true"
+            app:fontFamily="@font/segoe_ui_semibold"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:title="Receive" />
 
@@ -33,6 +35,7 @@
         <androidx.cardview.widget.CardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:hapticFeedbackEnabled="true"
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp">
 
@@ -40,6 +43,7 @@
                 android:id="@+id/qr_code_imageview"
                 android:layout_width="280dp"
                 android:layout_height="280dp"
+                android:hapticFeedbackEnabled="true"
                 android:scaleType="fitCenter" />
 
         </androidx.cardview.widget.CardView>
@@ -48,6 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:fontFamily="@font/segoe_ui_regular"
             android:text="Your Account ID"
             android:textAppearance="?attr/textAppearanceCaption" />
 
@@ -56,6 +61,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:hapticFeedbackEnabled="true"
+            android:fontFamily="@font/roboto_mono"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             android:textIsSelectable="true" />
 
@@ -74,6 +81,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:layout_weight="1"
+            android:fontFamily="@font/segoe_ui_semibold"
+            android:hapticFeedbackEnabled="true"
             android:text="Copy" />
 
         <com.google.android.material.button.MaterialButton
@@ -82,6 +91,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:layout_weight="1"
+            android:fontFamily="@font/segoe_ui_semibold"
+            android:hapticFeedbackEnabled="true"
             android:text="Share" />
 
     </LinearLayout>

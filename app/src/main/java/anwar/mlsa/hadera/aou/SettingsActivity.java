@@ -31,6 +31,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.gson.Gson;
 
@@ -93,6 +94,8 @@ public class SettingsActivity extends AppCompatActivity {
         setupNotificationSwitch();
         setupHapticFeedbackSwitch();
         setupExportButton();
+        setupSourceCodeLink();
+        setupDeveloperInfo();
     }
 
     @Override
@@ -108,7 +111,7 @@ public class SettingsActivity extends AppCompatActivity {
         exportHistoryButton = findViewById(R.id.export_history_button);
         changeExportLocationButton = findViewById(R.id.change_export_location_button);
         exportFormatRadioGroup = findViewById(R.id.export_format_radiogroup);
-        exportProgressBar = findViewById(R.id.export_progress_bar); // Make sure this ID exists in settings.xml
+        exportProgressBar = findViewById(R.id.export_progress_bar);
     }
 
     private void setupToolbar() {
@@ -118,7 +121,7 @@ public class SettingsActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        toolbar.setNavigationOnClickListener(v -> finish());
     }
 
     private void loadExportLocation() {
@@ -180,7 +183,7 @@ public class SettingsActivity extends AppCompatActivity {
         };
     }
 
-    private void proceedWithExport(ArrayList<TransferActivity.Transaction> transactions) {
+    private void proceedWithExport(ArrayList<Transaction> transactions) {
         int selectedId = exportFormatRadioGroup.getCheckedRadioButtonId();
         String fileName, mimeType, content;
 
@@ -228,9 +231,9 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private String getLogFormattedHistory(ArrayList<TransferActivity.Transaction> transactions) {
+    private String getLogFormattedHistory(ArrayList<Transaction> transactions) {
         StringBuilder sb = new StringBuilder();
-        for (TransferActivity.Transaction t : transactions) {
+        for (Transaction t : transactions) {
             sb.append("Type: ").append(t.type).append("\n");
             sb.append("Date: ").append(t.date).append("\n");
             sb.append("Amount: ").append(t.amount).append("\n");
@@ -247,14 +250,12 @@ public class SettingsActivity extends AppCompatActivity {
         return sb.toString();
     }
 
-    private String getCsvFormattedHistory(ArrayList<TransferActivity.Transaction> transactions) {
+    private String getCsvFormattedHistory(ArrayList<Transaction> transactions) {
         return "Date,Party,Amount,Memo,Type,Status,Fee\n" +
                 transactions.stream()
                         .map(t -> t.date + "," + t.party + "," + t.amount + "," + t.memo + "," + t.type + "," + t.status + "," + t.fee)
                         .collect(Collectors.joining("\n"));
     }
-
-    // --- Other Methods (mostly unchanged) ---
 
     private void setupThemeButtons() {
         findViewById(R.id.light_mode_button).setOnClickListener(v -> {
@@ -267,6 +268,20 @@ public class SettingsActivity extends AppCompatActivity {
             VibrationManager.vibrate(this);
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
             ThemeManager.saveTheme(this, AppCompatDelegate.MODE_NIGHT_YES);
+        });
+    }
+
+    private void setupSourceCodeLink() {
+        findViewById(R.id.source_code_card).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mhmdwaelanwr/Hedera-Transfer-App-Java"));
+            startActivity(intent);
+        });
+    }
+
+    private void setupDeveloperInfo() {
+        findViewById(R.id.developer_info).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://linkedin.com/in/mhmdwaelanwr"));
+            startActivity(intent);
         });
     }
 

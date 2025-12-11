@@ -9,6 +9,8 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:hapticFeedbackEnabled="true"
+        app:fontFamily="@font/segoe_ui_semibold"
         app:title="Settings" />
 
     <ScrollView
@@ -24,6 +26,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:hapticFeedbackEnabled="true"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -37,6 +40,7 @@
                         style="?attr/textAppearanceHeadline6"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:text="Appearance" />
 
                     <LinearLayout
@@ -51,6 +55,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:fontFamily="@font/segoe_ui_semibold"
+                            android:hapticFeedbackEnabled="true"
                             android:text="Light" />
 
                         <com.google.android.material.button.MaterialButton
@@ -60,6 +66,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
                             android:layout_weight="1"
+                            android:fontFamily="@font/segoe_ui_semibold"
+                            android:hapticFeedbackEnabled="true"
                             android:text="Dark" />
                     </LinearLayout>
                 </LinearLayout>
@@ -69,6 +77,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:hapticFeedbackEnabled="true"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -82,6 +91,7 @@
                         style="?attr/textAppearanceHeadline6"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:text="General" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
@@ -89,6 +99,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="@font/roboto_mono"
+                        android:hapticFeedbackEnabled="true"
                         android:text="Notifications" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
@@ -96,6 +108,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="@font/roboto_mono"
+                        android:hapticFeedbackEnabled="true"
                         android:text="Haptic Feedback" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -104,6 +118,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:hapticFeedbackEnabled="true"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -117,12 +132,14 @@
                         style="?attr/textAppearanceHeadline6"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:text="Accounts" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/accounts_recyclerview"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:hapticFeedbackEnabled="true"
                         android:layout_marginTop="8dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -130,6 +147,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="@font/segoe_ui_semibold"
+                        android:hapticFeedbackEnabled="true"
                         android:text="Add Account" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -138,6 +157,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:hapticFeedbackEnabled="true"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -151,6 +171,7 @@
                         style="?attr/textAppearanceHeadline6"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:text="Export History" />
 
                     <RadioGroup
@@ -165,6 +186,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
+                            android:fontFamily="@font/roboto_mono"
+                            android:hapticFeedbackEnabled="true"
                             android:text=".csv" />
 
                         <RadioButton
@@ -172,6 +195,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
+                            android:fontFamily="@font/roboto_mono"
+                            android:hapticFeedbackEnabled="true"
                             android:text=".json" />
 
                         <RadioButton
@@ -179,6 +204,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
+                            android:fontFamily="@font/roboto_mono"
+                            android:hapticFeedbackEnabled="true"
                             android:text=".log" />
                     </RadioGroup>
 
@@ -193,6 +220,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:fontFamily="@font/segoe_ui_semibold"
+                            android:hapticFeedbackEnabled="true"
                             android:text="Export History" />
 
                         <ImageButton
@@ -202,6 +231,7 @@
                             android:layout_gravity="center_vertical"
                             android:layout_marginStart="8dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
+                            android:hapticFeedbackEnabled="true"
                             android:src="@drawable/ic_folder" />
                     </LinearLayout>
 
@@ -216,13 +246,63 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/source_code_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:hapticFeedbackEnabled="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:hapticFeedbackEnabled="true"
+                        android:src="@drawable/ic_github" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:fontFamily="@font/segoe_ui_regular"
+                        android:text="View on GitHub"
+                        android:textAppearance="?attr/textAppearanceBody1" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/logout_button"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
+                android:fontFamily="@font/segoe_ui_semibold"
+                android:hapticFeedbackEnabled="true"
                 android:text="Logout" />
+
+            <TextView
+                android:id="@+id/developer_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:fontFamily="@font/english"
+                android:text="Development by mohamed anwar"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?attr/colorPrimary"
+                android:hapticFeedbackEnabled="true" />
 
         </LinearLayout>
     </ScrollView>

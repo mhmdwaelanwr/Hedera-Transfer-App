@@ -15,17 +15,17 @@ import java.util.Locale;
 public class HistoryApiParser {
 
     public static class HistoryResponse {
-        public ArrayList<TransferActivity.Transaction> transactions;
+        public ArrayList<Transaction> transactions;
         public String nextUrl;
 
-        HistoryResponse(ArrayList<TransferActivity.Transaction> transactions, String nextUrl) {
+        HistoryResponse(ArrayList<Transaction> transactions, String nextUrl) {
             this.transactions = transactions;
             this.nextUrl = nextUrl;
         }
     }
 
     public static HistoryResponse parse(String response, String currentAccountId) {
-        ArrayList<TransferActivity.Transaction> newTransactions = new ArrayList<>();
+        ArrayList<Transaction> newTransactions = new ArrayList<>();
         String nextUrl = null;
 
         if (response == null) {
@@ -69,11 +69,12 @@ public class HistoryApiParser {
 
                 if (!userFound) continue;
 
-                TransferActivity.Transaction transaction = new TransferActivity.Transaction();
+                Transaction transaction = new Transaction();
+                transaction.transactionId = tx.getString("consensus_timestamp");
                 long chargedTxFee = tx.getLong("charged_tx_fee");
                 String otherPartyAccount = "";
 
-                if (userAmount < 0) { // Sent
+                if (userAmount < 0) {
                     transaction.type = "Sent";
                     long principalRecipientAmount = 0;
                     for (int j = 0; j < transfers.length(); j++) {
@@ -86,7 +87,7 @@ public class HistoryApiParser {
                     transaction.amount = String.format(Locale.US, "-%.8f ℏ", principalRecipientAmount / 100_000_000.0);
                     transaction.fee = String.format(Locale.US, "%.8f ℏ", chargedTxFee / 100_000_000.0);
                     transaction.party = otherPartyAccount;
-                } else { // Received
+                } else { 
                     transaction.type = "Received";
                     long principalSenderAmount = 0;
                     for (int j = 0; j < transfers.length(); j++) {
@@ -107,7 +108,7 @@ public class HistoryApiParser {
                     try {
                         transaction.memo = new String(Base64.getDecoder().decode(memoBase64));
                     } catch (IllegalArgumentException e) {
-                        transaction.memo = ""; // handle invalid base64
+                        transaction.memo = "";
                     }
                 } else {
                     transaction.memo = "";
@@ -116,7 +117,6 @@ public class HistoryApiParser {
                 newTransactions.add(transaction);
             }
         } catch (JSONException e) {
-            // Error will be handled in the activity
         }
         return new HistoryResponse(newTransactions, nextUrl);
     }

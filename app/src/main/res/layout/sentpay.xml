@@ -16,6 +16,8 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:hapticFeedbackEnabled="true"
+            app:fontFamily="@font/segoe_ui_semibold"
             app:title="Payment Sent" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -32,6 +34,7 @@
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:layout_marginTop="32dp"
+            android:hapticFeedbackEnabled="true"
             android:src="@drawable/ic_check_circle"
             app:tint="?colorPrimary" />
 
@@ -39,12 +42,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:fontFamily="@font/segoe_ui_semibold"
             android:text="Payment Sent Successfully!"
             android:textAppearance="?attr/textAppearanceHeadline6" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:hapticFeedbackEnabled="true"
             android:layout_marginTop="32dp">
 
             <LinearLayout
@@ -56,6 +61,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="@font/roboto_mono"
                     android:text="Transaction ID" />
 
                 <TextView
@@ -63,6 +69,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:fontFamily="@font/roboto_mono"
                     android:textIsSelectable="true" />
 
                 <com.google.android.material.button.MaterialButton
@@ -71,6 +78,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:fontFamily="@font/segoe_ui_semibold"
+                    android:hapticFeedbackEnabled="true"
                     android:text="View on HashScan" />
 
             </LinearLayout>
@@ -91,6 +100,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:layout_weight="1"
+            android:fontFamily="@font/segoe_ui_semibold"
+            android:hapticFeedbackEnabled="true"
             android:text="Share" />
 
         <com.google.android.material.button.MaterialButton
@@ -99,6 +110,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:layout_weight="1"
+            android:fontFamily="@font/segoe_ui_semibold"
+            android:hapticFeedbackEnabled="true"
             android:text="Done" />
 
     </LinearLayout>

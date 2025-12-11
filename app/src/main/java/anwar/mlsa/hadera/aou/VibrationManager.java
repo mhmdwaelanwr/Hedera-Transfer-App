@@ -19,7 +19,7 @@ public class VibrationManager {
 
     public static boolean isVibrationEnabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(VIBRATION_ENABLED_KEY, true); // Default to true
+        return prefs.getBoolean(VIBRATION_ENABLED_KEY, true);
     }
 
     public static void vibrate(Context context) {
@@ -29,7 +29,6 @@ public class VibrationManager {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
                 } else {
-                    //deprecated in API 26
                     vibrator.vibrate(50);
                 }
             }

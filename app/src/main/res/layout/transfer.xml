@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground"
@@ -17,7 +18,9 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="My Wallet"
-            app:titleTextColor="?colorOnPrimary"/>
+            app:fontFamily="@font/segoe_ui_semibold"
+            android:hapticFeedbackEnabled="true"
+            app:titleTextColor="?colorOnPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -34,61 +37,108 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingBottom="16dp">
 
-                <!-- Wallet Balance Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/balance_card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="15dp">
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:hapticFeedbackEnabled="true"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:cardElevation="0dp">
 
-                    <LinearLayout
+                    <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
+                        android:layout_height="209dp"
+                        android:background="@drawable/balance_card_background"
                         android:padding="16dp">
 
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/network_chip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Testnet"
+                            android:fontFamily="@font/segoe_ui_regular"
+                            android:hapticFeedbackEnabled="true"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <ImageView
+                            android:id="@+id/hedera_logo"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_wallet"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:tint="@color/white" />
+
                         <TextView
+                            android:id="@+id/total_balance_label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Balance"
-                            android:textAppearance="?attr/textAppearanceCaption" />
+                            android:fontFamily="@font/segoe_ui_regular"
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="@color/white"
+                            app:layout_constraintVertical_chainStyle="packed"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toTopOf="@id/balanceTextView"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"/>
 
                         <TextView
                             android:id="@+id/balanceTextView"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceHeadline4" />
+                            android:fontFamily="@font/segoe_ui_semibold"
+                            android:textAppearance="?attr/textAppearanceHeadline5"
+                            android:textColor="@color/white"
+                            app:layout_constraintTop_toBottomOf="@id/total_balance_label"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            tools:text="1,234.56 HBAR" />
 
                         <LinearLayout
-                            android:id="@+id/walletid"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
                             android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent">
 
                             <TextView
                                 android:id="@+id/accountID"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceBody2" />
+                                android:fontFamily="@font/roboto_mono"
+                                android:textAppearance="?attr/textAppearanceBody2"
+                                android:textColor="@color/white"
+                                tools:text="0.0.123456" />
 
-                            <ImageView
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
+                            <ImageButton
+                                android:id="@+id/copy_account_id_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
-                                android:src="@drawable/ic_paste"
-                                app:tint="?attr/colorOnSurface" />
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:src="@drawable/ic_copy"
+                                android:hapticFeedbackEnabled="true"
+                                app:tint="@color/white" />
                         </LinearLayout>
-                    </LinearLayout>
+
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Action Buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp">
@@ -97,54 +147,38 @@
                         android:id="@+id/send_button"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Send" />
+                        android:text="Send"
+                        android:fontFamily="@font/segoe_ui_semibold"
+                        android:hapticFeedbackEnabled="true"
+                        app:icon="@drawable/ic_arrow_upward" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/receive_button"
+                        style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Receive" />
+                        android:text="Receive"
+                        android:fontFamily="@font/segoe_ui_semibold"
+                        android:hapticFeedbackEnabled="true"
+                        app:icon="@drawable/ic_arrow_downward" />
                 </LinearLayout>
 
-                <!-- MLSA Blog Section -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="24dp"
-                    android:text="MLSA Blog"
-                    android:textAppearance="?attr/textAppearanceHeadline6" />
-
-                <FrameLayout
+                <ViewStub
+                    android:id="@+id/blog_section_stub"
                     android:layout_width="match_parent"
-                    android:layout_height="150dp">
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:inflatedId="@+id/blog_section_container"
+                    android:layout="@layout/blog_section" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recyclerview1"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:orientation="horizontal"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
-
-                    <ProgressBar
-                        android:id="@+id/blog_progress_bar"
-                        style="?android:attr/progressBarStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:visibility="gone" />
-                </FrameLayout>
-
-                <!-- History Section -->
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
+                    android:layout_marginTop="32dp"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp">
 
@@ -154,22 +188,31 @@
                         android:layout_alignParentStart="true"
                         android:layout_centerVertical="true"
                         android:text="Recent History"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:textAppearance="?attr/textAppearanceHeadline6" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/see_all_button"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        style="?attr/borderlessButtonStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
+                        android:hapticFeedbackEnabled="true"
+                        android:fontFamily="@font/segoe_ui_semibold"
                         android:text="See All" />
                 </RelativeLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recyclerview2"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:hapticFeedbackEnabled="true"
+                    tools:listitem="@layout/recyclerview_history_item"
+                    tools:itemCount="3"/>
 
                 <TextView
                     android:id="@+id/emptyHistoryMessage"
@@ -177,8 +220,10 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:padding="16dp"
+                    android:fontFamily="@font/segoe_ui_regular"
                     android:text="No recent transactions."
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

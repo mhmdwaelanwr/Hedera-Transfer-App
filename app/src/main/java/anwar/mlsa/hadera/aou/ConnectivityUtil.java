@@ -26,7 +26,6 @@ public class ConnectivityUtil {
                     capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
             );
         } else {
-            // For older Android versions
             android.net.NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             return activeNetworkInfo != null && activeNetworkInfo.isConnected();
         }

@@ -4,11 +4,16 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKeys;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +21,7 @@ import java.util.Map;
 
 public class WalletStorage {
 
-    private static final String PREF_NAME = "WalletData";
+    private static final String PREF_NAME = "EncryptedWalletData";
     private static final String KEY_ACCOUNTS = "ACCOUNTS";
     private static final String KEY_CURRENT_ACCOUNT_INDEX = "CURRENT_ACCOUNT_INDEX";
     private static final int MAX_ACCOUNTS = 6;
@@ -27,10 +32,20 @@ public class WalletStorage {
     private static final String SUFFIX_HISTORY_MIGRATED = "_HISTORY_MIGRATED";
 
     private static SharedPreferences getPrefs(Context context) {
-        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            return EncryptedSharedPreferences.create(
+                    PREF_NAME,
+                    masterKeyAlias,
+                    context,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+        } catch (GeneralSecurityException | IOException e) {
+            Log.e("WalletStorage", "Could not create encrypted shared preferences", e);
+            throw new RuntimeException("Could not create encrypted shared preferences", e);
+        }
     }
-
-    // --- Account Management ---
 
     public static List<Account> getAccounts(Context context) {
         String json = getPrefs(context).getString(KEY_ACCOUNTS, null);
@@ -97,7 +112,6 @@ public class WalletStorage {
         return null;
     }
 
-    // --- Wallet Credentials ---
     public static boolean isWalletSaved(Context context) {
         return getCurrentAccount(context) != null;
     }
@@ -112,7 +126,6 @@ public class WalletStorage {
         return (currentAccount != null) ? currentAccount.getPrivateKey() : null;
     }
 
-    // --- Balance ---
     public static void saveFormattedBalance(Context context, String formattedBalance) {
         String accountId = getAccountId(context);
         if (accountId != null) {
@@ -137,31 +150,28 @@ public class WalletStorage {
         return (accountId != null) ? Double.longBitsToDouble(getPrefs(context).getLong(accountId + SUFFIX_RAW_BALANCE, 0L)) : 0.0;
     }
 
-    // --- Transaction History (with MIGRATION logic) ---
-
     private static void migrateHistoryIfNecessary(Context context, String accountId) {
         SharedPreferences prefs = getPrefs(context);
         boolean isMigrated = prefs.getBoolean(accountId + SUFFIX_HISTORY_MIGRATED, false);
         if (isMigrated) {
-            return; // Already migrated, do nothing.
+            return;
         }
 
         String json = prefs.getString(accountId + SUFFIX_TRANSACTION_HISTORY, null);
         if (json == null || json.isEmpty() || json.equals("[]")) {
             prefs.edit().putBoolean(accountId + SUFFIX_HISTORY_MIGRATED, true).apply();
-            return; // No data to migrate.
+            return; 
         }
 
         Gson gson = new Gson();
         try {
-            // Attempt to parse with the old format
             Type oldHistoryType = new TypeToken<ArrayList<HashMap<String, Object>>>() {}.getType();
             List<Map<String, Object>> oldHistory = gson.fromJson(json, oldHistoryType);
 
             if (oldHistory != null && !oldHistory.isEmpty() && oldHistory.get(0) != null && oldHistory.get(0).containsKey("recipient")) {
-                ArrayList<TransferActivity.Transaction> newHistory = new ArrayList<>();
+                ArrayList<Transaction> newHistory = new ArrayList<>();
                 for (Map<String, Object> oldTx : oldHistory) {
-                    TransferActivity.Transaction newTx = new TransferActivity.Transaction();
+                    Transaction newTx = new Transaction();
                     newTx.type = (String) oldTx.get("type");
                     newTx.date = (String) oldTx.get("date");
                     newTx.amount = (String) oldTx.get("amount");
@@ -183,7 +193,7 @@ public class WalletStorage {
         }
     }
 
-    public static ArrayList<TransferActivity.Transaction> getHistory(Context context) {
+    public static ArrayList<Transaction> getHistory(Context context) {
         String accountId = getAccountId(context);
         if (accountId == null) {
             return new ArrayList<>();
@@ -198,8 +208,8 @@ public class WalletStorage {
         }
 
         try {
-            Type transactionListType = new TypeToken<ArrayList<TransferActivity.Transaction>>() {}.getType();
-            ArrayList<TransferActivity.Transaction> history = new Gson().fromJson(json, transactionListType);
+            Type transactionListType = new TypeToken<ArrayList<Transaction>>() {}.getType();
+            ArrayList<Transaction> history = new Gson().fromJson(json, transactionListType);
             return history != null ? history : new ArrayList<>();
         } catch (JsonSyntaxException e) {
             Log.e("WalletStorage", "Could not parse migrated history, returning empty list.", e);
@@ -207,11 +217,10 @@ public class WalletStorage {
         }
     }
 
-    public static void saveTransaction(Context context, TransferActivity.Transaction newTransaction) {
+    public static void saveTransaction(Context context, Transaction newTransaction) {
         String accountId = getAccountId(context);
         if (accountId != null) {
-            // It's safe to call getHistory here because it handles migration.
-            ArrayList<TransferActivity.Transaction> history = getHistory(context);
+            ArrayList<Transaction> history = getHistory(context);
             if (history == null) { 
                 history = new ArrayList<>();
             }

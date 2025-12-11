@@ -1,16 +1,16 @@
 package anwar.mlsa.hadera.aou;
 
-import android.app.Activity;
+import android.content.Context;
 import java.util.HashMap;
 
 public class RequestNetwork {
-    private final Activity activity;
+    private final Context context;
     private HashMap<String, Object> params = new HashMap<>();
     private HashMap<String, Object> headers = new HashMap<>();
     private int requestType = 0;
 
-    public RequestNetwork(Activity activity) {
-        this.activity = activity;
+    public RequestNetwork(Context context) {
+        this.context = context;
     }
 
     public void setHeaders(HashMap<String, Object> headers) {
@@ -30,8 +30,8 @@ public class RequestNetwork {
         return headers;
     }
 
-    public Activity getActivity() {
-        return activity;
+    public Context getContext() {
+        return context;
     }
 
     public int getRequestType() {

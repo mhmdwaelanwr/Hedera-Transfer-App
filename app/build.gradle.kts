@@ -29,6 +29,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -59,4 +63,13 @@ dependencies {
     
     // WorkManager
     implementation("androidx.work:work-runtime:2.9.0")
+    
+    // Biometric
+    implementation("androidx.biometric:biometric:1.1.0")
+    
+    // Security
+    implementation("androidx.security:security-crypto:1.1.0")
+
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
 }

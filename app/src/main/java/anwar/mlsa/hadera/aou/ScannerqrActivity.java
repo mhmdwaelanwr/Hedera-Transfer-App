@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -42,15 +43,23 @@ public class ScannerqrActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.scannerqr); // Ensure you have this layout file
+        setContentView(R.layout.scannerqr);
 
         initializeViews();
         checkPermissionsAndStartScanner();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finish();
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            }
+        });
     }
 
     private void initializeViews() {
         scannerView = findViewById(R.id.scannerview);
-        ImageView pickFromFileButton = findViewById(R.id.imageview1); // Button to pick from gallery
+        ImageView pickFromFileButton = findViewById(R.id.imageview1);
 
         pickFromFileButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -130,7 +139,7 @@ public class ScannerqrActivity extends AppCompatActivity {
         if (text != null && text.equals(currentAccountId)){
             Toast.makeText(this, "You cannot send to your own account.", Toast.LENGTH_LONG).show();
             if (mCodeScanner != null) {
-                mCodeScanner.startPreview(); // Allow scanning again
+                mCodeScanner.startPreview();
             }
         } else if (text != null && text.matches("^0\\.0\\.[0-9]+$")) {
             Intent resultIntent = new Intent();
@@ -140,7 +149,7 @@ public class ScannerqrActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Invalid QR Code. Please scan a valid Hedera Account ID.", Toast.LENGTH_LONG).show();
             if (mCodeScanner != null) {
-                mCodeScanner.startPreview(); // Allow scanning again
+                mCodeScanner.startPreview();
             }
         }
     }
@@ -159,11 +168,5 @@ public class ScannerqrActivity extends AppCompatActivity {
             mCodeScanner.releaseResources();
         }
         super.onPause();
-    }
-    
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }
