@@ -20,6 +20,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,10 +31,17 @@ import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import anwar.mlsa.hadera.aou.databinding.TransferBinding;
+import anwar.mlsa.hadera.aou.models.MarketData;
+import anwar.mlsa.hadera.aou.models.NetworkAlert;
+import anwar.mlsa.hadera.aou.models.PriceAlert;
+import anwar.mlsa.hadera.aou.services.CurrencyPreferenceService;
+import anwar.mlsa.hadera.aou.services.MarketDataParser;
+import anwar.mlsa.hadera.aou.services.PriceAlertService;
 
 public class TransferActivity extends AppCompatActivity {
 
@@ -46,14 +54,18 @@ public class TransferActivity extends AppCompatActivity {
     private BlogAdapter blogAdapter;
 
     private double exchangeRate = 0.0;
+    private MarketData currentMarketData;
+    private NetworkAlert currentNetworkAlert;
 
     private static final String HEDERA_API_BASE_URL = "https://testnet.mirrornode.hedera.com";
     private static final String HISTORY_API_ENDPOINT = "/api/v1/transactions";
     private static final String BLOG_API_URL = "https://mlsaegypt.org/api/blog";
+    private static final String COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
     private static final String HEDERA_HISTORY_TAG = "hedera_history_tag";
     private static final String BALANCE_TAG = "balance_tag";
     private static final String BLOG_TAG = "blog_tag";
     private static final String EXCHANGE_RATE_TAG = "exchange_rate_tag";
+    private static final String MARKET_DATA_TAG = "market_data_tag";
 
     private static class ExchangeRateResponse {
         Rate current_rate;
@@ -166,6 +178,17 @@ public class TransferActivity extends AppCompatActivity {
             }
         });
 
+        // Currency selector button
+        binding.currencySelectorButton.setOnClickListener(v -> {
+            VibrationManager.vibrate(this);
+            showCurrencySelector();
+        });
+
+        // Network status banner close button
+        binding.networkStatusClose.setOnClickListener(v -> {
+            binding.networkStatusBanner.setVisibility(View.GONE);
+        });
+
         networkReq = new RequestNetwork(this);
         setupNetworkListener();
 
@@ -192,6 +215,8 @@ public class TransferActivity extends AppCompatActivity {
                     if (blogAdapter != null) blogAdapter.updateData(posts);
                 } else if (EXCHANGE_RATE_TAG.equals(tag)) {
                     handleExchangeRateResponse(response);
+                } else if (MARKET_DATA_TAG.equals(tag)) {
+                    handleMarketDataResponse(response);
                 }
             }
 
@@ -212,6 +237,8 @@ public class TransferActivity extends AppCompatActivity {
                 } else if (EXCHANGE_RATE_TAG.equals(tag)) {
                     Log.e("TransferActivity", "Failed to fetch exchange rate: " + message);
                     binding.exchangeRateTextView.setText("Failed to load rate");
+                } else if (MARKET_DATA_TAG.equals(tag)) {
+                    Log.e("TransferActivity", "Failed to fetch market data: " + message);
                 }
             }
         };
@@ -237,6 +264,7 @@ public class TransferActivity extends AppCompatActivity {
             binding.balanceTextView.setText(WalletStorage.getFormattedBalance(this));
             fetchBalance(accountId);
             fetchExchangeRate();
+            fetchMarketData();
             loadRecentHistory();
         }
         updateBalanceCard();
@@ -351,6 +379,135 @@ public class TransferActivity extends AppCompatActivity {
                 binding.recyclerview2.setVisibility(View.VISIBLE);
             }
             historyAdapter.submitList(transactions);
+        });
+    }
+
+    private void fetchMarketData() {
+        String currency = CurrencyPreferenceService.getSelectedCurrency(this);
+        String url = COINGECKO_API_URL + "?ids=hedera-hashgraph&vs_currencies=" + currency + 
+                     "&include_24hr_change=true";
+        networkReq.startRequestNetwork(RequestNetworkController.GET, url, MARKET_DATA_TAG, networkListener);
+    }
+
+    private void handleMarketDataResponse(String response) {
+        try {
+            String currency = CurrencyPreferenceService.getSelectedCurrency(this);
+            currentMarketData = MarketDataParser.parseCoinGeckoResponse(response, currency);
+            
+            if (currentMarketData != null) {
+                updateMarketDataDisplay();
+                evaluatePriceAlerts();
+            }
+        } catch (Exception e) {
+            Log.e("TransferActivity", "Error handling market data response", e);
+        }
+    }
+
+    private void updateMarketDataDisplay() {
+        if (currentMarketData == null) return;
+
+        runOnUiThread(() -> {
+            String symbol = CurrencyPreferenceService.getCurrencySymbol(this);
+            
+            // Update exchange rate display
+            String rateText = String.format(Locale.US, "1 ℏ = %s%.4f", symbol, currentMarketData.getPrice());
+            binding.exchangeRateTextView.setText(rateText);
+            
+            // Update 24h price change
+            String changeText = String.format(Locale.US, "%s%.2f%% (24h)", 
+                currentMarketData.isPositiveChange() ? "+" : "", 
+                currentMarketData.getChangePercent24h());
+            binding.priceChange24hTextView.setText(changeText);
+            
+            // Set color based on positive/negative change
+            int color = currentMarketData.isPositiveChange() ? 
+                ContextCompat.getColor(this, android.R.color.holo_green_light) : 
+                ContextCompat.getColor(this, android.R.color.holo_red_light);
+            binding.priceChange24hTextView.setTextColor(color);
+            
+            // Update balance in fiat using market data
+            double balance = WalletStorage.getRawBalance(this);
+            double balanceInFiat = balance * currentMarketData.getPrice();
+            String formattedBalanceInFiat = String.format(Locale.US, "%s%,.2f", symbol, balanceInFiat);
+            // You could add another TextView to show this, or update existing one
+        });
+    }
+
+    private void showCurrencySelector() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Currency");
+        
+        String currentCurrency = CurrencyPreferenceService.getSelectedCurrency(this);
+        int currentIndex = -1;
+        for (int i = 0; i < CurrencyPreferenceService.SUPPORTED_CURRENCIES.length; i++) {
+            if (CurrencyPreferenceService.SUPPORTED_CURRENCIES[i].equals(currentCurrency)) {
+                currentIndex = i;
+                break;
+            }
+        }
+        
+        builder.setSingleChoiceItems(CurrencyPreferenceService.CURRENCY_NAMES, currentIndex, 
+            (dialog, which) -> {
+                String selectedCurrency = CurrencyPreferenceService.SUPPORTED_CURRENCIES[which];
+                CurrencyPreferenceService.setSelectedCurrency(this, selectedCurrency);
+                fetchMarketData();
+                dialog.dismiss();
+                Toast.makeText(this, "Currency changed to " + CurrencyPreferenceService.CURRENCY_NAMES[which], 
+                    Toast.LENGTH_SHORT).show();
+            });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void evaluatePriceAlerts() {
+        if (currentMarketData == null) return;
+        
+        List<PriceAlert> triggeredAlerts = PriceAlertService.evaluateAlerts(
+            this, 
+            currentMarketData.getPrice(), 
+            currentMarketData.getFiatCurrency()
+        );
+        
+        for (PriceAlert alert : triggeredAlerts) {
+            String message = String.format(Locale.US, 
+                "Price Alert: HBAR is now %s %s%.2f", 
+                alert.getDirection().equals("ABOVE") ? "above" : "below",
+                CurrencyPreferenceService.getCurrencySymbol(this),
+                alert.getTargetPrice()
+            );
+            
+            anwar.mlsa.hadera.aou.NotificationManager.sendNotification(
+                this, 
+                "Price Alert Triggered", 
+                message
+            );
+        }
+    }
+
+    private void showNetworkStatusBanner(NetworkAlert alert) {
+        if (alert == null || !alert.isActive()) {
+            binding.networkStatusBanner.setVisibility(View.GONE);
+            return;
+        }
+        
+        runOnUiThread(() -> {
+            binding.networkStatusMessage.setText(alert.getMessage());
+            
+            // Set color based on alert level
+            int backgroundColor;
+            switch (alert.getLevel()) {
+                case "CRITICAL":
+                    backgroundColor = ContextCompat.getColor(this, android.R.color.holo_red_dark);
+                    break;
+                case "WARN":
+                    backgroundColor = ContextCompat.getColor(this, android.R.color.holo_orange_dark);
+                    break;
+                default:
+                    backgroundColor = ContextCompat.getColor(this, R.color.colorPrimary);
+            }
+            binding.networkStatusBanner.setCardBackgroundColor(backgroundColor);
+            binding.networkStatusBanner.setVisibility(View.VISIBLE);
         });
     }
 }
