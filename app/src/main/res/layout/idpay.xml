@@ -102,6 +102,19 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/address_book_button"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Saved Addresses"
+                android:fontFamily="@font/segoe_ui_regular"
+                app:icon="@drawable/ic_account"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/recipient_input_layout" />
+
             <TextView
                 android:id="@+id/verified_text"
                 android:layout_width="wrap_content"
@@ -114,7 +127,7 @@
                 android:visibility="gone"
                 app:drawableStartCompat="@drawable/ic_check_circle"
                 app:layout_constraintStart_toStartOf="@+id/recipient_input_layout"
-                app:layout_constraintTop_toBottomOf="@+id/recipient_input_layout" />
+                app:layout_constraintTop_toBottomOf="@+id/address_book_button" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/amount_input_layout"
@@ -156,6 +169,51 @@
                     android:fontFamily="@font/segoe_ui_regular" />
 
             </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/fee_info_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:visibility="gone"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/memo_input_layout">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Transaction Fee (Estimated)"
+                        android:fontFamily="@font/segoe_ui_regular"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                    <TextView
+                        android:id="@+id/fee_hbar_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="@font/segoe_ui_semibold"
+                        android:textAppearance="?attr/textAppearanceBody1"
+                        android:text="0.0001 ℏ" />
+
+                    <TextView
+                        android:id="@+id/fee_fiat_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/segoe_ui_regular"
+                        android:textAppearance="?attr/textAppearanceCaption"
+                        android:text="≈ $0.000008" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

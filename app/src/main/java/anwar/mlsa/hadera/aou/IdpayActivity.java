@@ -40,16 +40,21 @@ public class IdpayActivity extends AppCompatActivity {
     private TextInputEditText amountEditText;
     private TextInputEditText memoEditText;
     private Button sendButton;
+    private Button addressBookButton;
     private ProgressBar progressBar;
     private TextView balanceTextView;
     private TextView exchangeRateTextView;
+    private TextView feeHbarText;
+    private TextView feeFiatText;
     private TextInputLayout recipientLayout;
     private TextInputLayout amountLayout;
     private TextView verifiedTextView;
+    private View feeInfoCard;
 
     private IdpayViewModel viewModel;
     private double currentBalance = 0.0;
     private double exchangeRate = 0.0;
+    private double estimatedFeeHbar = 0.0001; // Default Hedera fee estimate
 
     private Executor executor;
     private BiometricPrompt biometricPrompt;
@@ -67,6 +72,28 @@ public class IdpayActivity extends AppCompatActivity {
                         if (viewModel != null) {
                             viewModel.verifyAccountId(scannedId);
                         }
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> addressBookLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    String accountId = result.getData().getStringExtra("SELECTED_ACCOUNT_ID");
+                    String label = result.getData().getStringExtra("SELECTED_LABEL");
+                    String memo = result.getData().getStringExtra("SELECTED_MEMO");
+                    
+                    if (accountId != null) {
+                        recipientIdEditText.setText(accountId);
+                        if (memo != null && !memo.isEmpty()) {
+                            memoEditText.setText(memo);
+                        }
+                        if (viewModel != null) {
+                            viewModel.verifyAccountId(accountId);
+                        }
+                        Toast.makeText(this, "Selected: " + label, Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -133,12 +160,16 @@ public class IdpayActivity extends AppCompatActivity {
         amountEditText = findViewById(R.id.amount_field);
         memoEditText = findViewById(R.id.memo_field);
         sendButton = findViewById(R.id.send_button);
+        addressBookButton = findViewById(R.id.address_book_button);
         progressBar = findViewById(R.id.progressBar);
         balanceTextView = findViewById(R.id.balance_textview);
         exchangeRateTextView = findViewById(R.id.exchange_rate_text_view);
         recipientLayout = findViewById(R.id.recipient_input_layout);
         amountLayout = findViewById(R.id.amount_input_layout);
         verifiedTextView = findViewById(R.id.verified_text);
+        feeInfoCard = findViewById(R.id.fee_info_card);
+        feeHbarText = findViewById(R.id.fee_hbar_text);
+        feeFiatText = findViewById(R.id.fee_fiat_text);
     }
 
     private void setupToolbar() {
@@ -153,6 +184,12 @@ public class IdpayActivity extends AppCompatActivity {
         recipientLayout.setEndIconOnClickListener(v -> {
             Intent intent = new Intent(IdpayActivity.this, ScannerqrActivity.class);
             qrScannerLauncher.launch(intent);
+        });
+
+        addressBookButton.setOnClickListener(v -> {
+            Intent intent = new Intent(IdpayActivity.this, AddressBookActivity.class);
+            intent.putExtra("SELECTION_MODE", true);
+            addressBookLauncher.launch(intent);
         });
 
         TextWatcher textWatcher = new TextWatcher() {
@@ -172,6 +209,7 @@ public class IdpayActivity extends AppCompatActivity {
                             safeGetText(amountEditText).trim(),
                             currentBalance
                     );
+                    updateFeeEstimation();
                 }
             }
         };
@@ -210,6 +248,7 @@ public class IdpayActivity extends AppCompatActivity {
                         String rateValueString = parts[1].replace("$", "").trim();
                         exchangeRate = Double.parseDouble(rateValueString);
                         updateBalanceInUSD();
+                        updateFeeEstimation();
                     }
                 } catch (NumberFormatException e) {
                     exchangeRateTextView.setText(rate);
@@ -275,5 +314,28 @@ public class IdpayActivity extends AppCompatActivity {
     private String safeGetText(TextInputEditText editText) {
         Editable text = editText.getText();
         return text != null ? text.toString() : "";
+    }
+
+    private void updateFeeEstimation() {
+        String amount = safeGetText(amountEditText).trim();
+        String recipient = safeGetText(recipientIdEditText).trim();
+
+        // Only show fee if both fields are filled
+        if (!amount.isEmpty() && !recipient.isEmpty() && recipient.matches("^0\\.0\\.[0-9]+$")) {
+            feeInfoCard.setVisibility(View.VISIBLE);
+            
+            // Update fee in HBAR
+            feeHbarText.setText(String.format(Locale.US, "%.8f ℏ", estimatedFeeHbar));
+            
+            // Update fee in fiat if we have exchange rate
+            if (exchangeRate > 0) {
+                double feeFiat = estimatedFeeHbar * exchangeRate;
+                feeFiatText.setText(String.format(Locale.US, "≈ $%.6f", feeFiat));
+            } else {
+                feeFiatText.setText("Exchange rate unavailable");
+            }
+        } else {
+            feeInfoCard.setVisibility(View.GONE);
+        }
     }
 }
