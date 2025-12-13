@@ -20,4 +20,6 @@ public interface TransactionRepository {
     void getBalance(String accountId, Consumer<Result<Map<String, Object>>> callback);
 
     void getHistory(String accountId, String url, Consumer<Result<HistoryApiParser.HistoryResponse>> callback);
+
+    void getExchangeRate(Consumer<Result<String>> callback);
 }

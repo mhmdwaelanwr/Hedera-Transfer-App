@@ -25,10 +25,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import anwar.mlsa.hadera.aou.databinding.TransferBinding;
@@ -49,6 +51,16 @@ public class TransferActivity extends AppCompatActivity {
     private static final String HEDERA_HISTORY_TAG = "hedera_history_tag";
     private static final String BALANCE_TAG = "balance_tag";
     private static final String BLOG_TAG = "blog_tag";
+    private static final String EXCHANGE_RATE_TAG = "exchange_rate_tag";
+
+    private static class ExchangeRateResponse {
+        Rate current_rate;
+    }
+
+    private static class Rate {
+        int cent_equivalent;
+        int hbar_equivalent;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,6 +188,8 @@ public class TransferActivity extends AppCompatActivity {
                     if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
                     ArrayList<Post> posts = BlogApiParser.parse(response);
                     if (blogAdapter != null) blogAdapter.updateData(posts);
+                } else if (EXCHANGE_RATE_TAG.equals(tag)) {
+                    handleExchangeRateResponse(response);
                 }
             }
 
@@ -193,6 +207,9 @@ public class TransferActivity extends AppCompatActivity {
                     ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
                     if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
                     showErrorSnackbar("Failed to load blog posts.", () -> loadBlogPosts());
+                } else if (EXCHANGE_RATE_TAG.equals(tag)) {
+                    Log.e("TransferActivity", "Failed to fetch exchange rate: " + message);
+                    binding.exchangeRateTextView.setText("Failed to load rate");
                 }
             }
         };
@@ -217,6 +234,7 @@ public class TransferActivity extends AppCompatActivity {
             binding.accountID.setText(accountId);
             binding.balanceTextView.setText(WalletStorage.getFormattedBalance(this));
             fetchBalance(accountId);
+            fetchExchangeRate();
             loadRecentHistory();
         }
         updateBalanceCard();
@@ -237,6 +255,10 @@ public class TransferActivity extends AppCompatActivity {
 
     private void fetchBalance(String accountId) {
         networkReq.startRequestNetwork(RequestNetworkController.GET, ApiConfig.getBalanceUrl(accountId), BALANCE_TAG, networkListener);
+    }
+
+    private void fetchExchangeRate() {
+        networkReq.startRequestNetwork(RequestNetworkController.GET, ApiConfig.EXCHANGE_RATE_URL, EXCHANGE_RATE_TAG, networkListener);
     }
 
     private void loadRecentHistory() {
@@ -278,6 +300,24 @@ public class TransferActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             Log.e("BalanceAPI_CRASH", "Could not parse balance response", e);
+        }
+    }
+
+    private void handleExchangeRateResponse(String response) {
+        try {
+            ExchangeRateResponse rateResponse = new Gson().fromJson(response, ExchangeRateResponse.class);
+            if (rateResponse != null && rateResponse.current_rate != null) {
+                int cents = rateResponse.current_rate.cent_equivalent;
+                int hbars = rateResponse.current_rate.hbar_equivalent;
+                if (hbars > 0) {
+                    double rate = (double) cents / hbars;
+                    String rateText = String.format(Locale.US, "1 HBAR = $%.4f", rate);
+                    binding.exchangeRateTextView.setText(rateText);
+                }
+            }
+        } catch (JsonSyntaxException e) {
+            Log.e("ExchangeRateAPI_CRASH", "Could not parse exchange rate response", e);
+            binding.exchangeRateTextView.setText("Invalid rate data");
         }
     }
 

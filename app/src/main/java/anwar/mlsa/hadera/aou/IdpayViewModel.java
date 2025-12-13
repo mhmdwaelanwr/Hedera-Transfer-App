@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import java.util.Map;
 
+import anwar.mlsa.hadera.aou.domain.use_case.GetExchangeRateUseCase;
 import anwar.mlsa.hadera.aou.domain.use_case.SendTransactionUseCase;
 import anwar.mlsa.hadera.aou.domain.use_case.VerifyAccountUseCase;
 import anwar.mlsa.hadera.aou.domain.util.Result;
@@ -18,6 +19,7 @@ public class IdpayViewModel extends AndroidViewModel {
 
     private final VerifyAccountUseCase verifyAccountUseCase;
     private final SendTransactionUseCase sendTransactionUseCase;
+    private final GetExchangeRateUseCase getExchangeRateUseCase;
 
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> recipientError = new MutableLiveData<>();
@@ -25,16 +27,19 @@ public class IdpayViewModel extends AndroidViewModel {
     private final MutableLiveData<String> verifiedRecipient = new MutableLiveData<>();
     private final MutableLiveData<Result<Map<String, Object>>> transactionResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isSendButtonEnabled = new MutableLiveData<>(false);
+    private final MutableLiveData<String> exchangeRate = new MutableLiveData<>();
 
     private final Handler debounceHandler = new Handler(Looper.getMainLooper());
     private Runnable debounceRunnable;
 
     public IdpayViewModel(@NonNull Application application,
                             VerifyAccountUseCase verifyAccountUseCase,
-                            SendTransactionUseCase sendTransactionUseCase) {
+                            SendTransactionUseCase sendTransactionUseCase,
+                            GetExchangeRateUseCase getExchangeRateUseCase) {
         super(application);
         this.verifyAccountUseCase = verifyAccountUseCase;
         this.sendTransactionUseCase = sendTransactionUseCase;
+        this.getExchangeRateUseCase = getExchangeRateUseCase;
     }
 
     public LiveData<Boolean> isLoading() { return isLoading; }
@@ -43,6 +48,17 @@ public class IdpayViewModel extends AndroidViewModel {
     public LiveData<String> getVerifiedRecipient() { return verifiedRecipient; }
     public LiveData<Result<Map<String, Object>>> getTransactionResult() { return transactionResult; }
     public LiveData<Boolean> isSendButtonEnabled() { return isSendButtonEnabled; }
+    public LiveData<String> getExchangeRate() { return exchangeRate; }
+
+    public void fetchExchangeRate() {
+        getExchangeRateUseCase.execute(result -> {
+            if (result instanceof Result.Success) {
+                exchangeRate.postValue(((Result.Success<String>) result).data);
+            } else if (result instanceof Result.Error) {
+                exchangeRate.postValue(((Result.Error<String>) result).message);
+            }
+        });
+    }
 
     public void onInputChanged(String recipientId, String amountStr, double currentBalance) {
         debounceHandler.removeCallbacks(debounceRunnable);

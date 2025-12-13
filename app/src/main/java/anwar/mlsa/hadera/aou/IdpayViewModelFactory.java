@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import anwar.mlsa.hadera.aou.data.repository.TransactionRepositoryImpl;
 import anwar.mlsa.hadera.aou.domain.repository.TransactionRepository;
+import anwar.mlsa.hadera.aou.domain.use_case.GetExchangeRateUseCase;
 import anwar.mlsa.hadera.aou.domain.use_case.SendTransactionUseCase;
 import anwar.mlsa.hadera.aou.domain.use_case.VerifyAccountUseCase;
 
@@ -26,7 +27,8 @@ public class IdpayViewModelFactory implements ViewModelProvider.Factory {
             TransactionRepository repository = new TransactionRepositoryImpl(application);
             VerifyAccountUseCase verifyAccountUseCase = new VerifyAccountUseCase(repository);
             SendTransactionUseCase sendTransactionUseCase = new SendTransactionUseCase(repository);
-            return (T) new IdpayViewModel(application, verifyAccountUseCase, sendTransactionUseCase);
+            GetExchangeRateUseCase getExchangeRateUseCase = new GetExchangeRateUseCase(repository);
+            return (T) new IdpayViewModel(application, verifyAccountUseCase, sendTransactionUseCase, getExchangeRateUseCase);
         }
         throw new IllegalArgumentException("Unknown ViewModel class");
     }

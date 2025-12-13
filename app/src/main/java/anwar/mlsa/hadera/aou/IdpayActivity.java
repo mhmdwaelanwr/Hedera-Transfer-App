@@ -41,6 +41,7 @@ public class IdpayActivity extends AppCompatActivity {
     private Button sendButton;
     private ProgressBar progressBar;
     private TextView balanceTextView;
+    private TextView exchangeRateTextView;
     private TextInputLayout recipientLayout;
     private TextInputLayout amountLayout;
     private TextView verifiedTextView;
@@ -132,6 +133,7 @@ public class IdpayActivity extends AppCompatActivity {
         sendButton = findViewById(R.id.send_button);
         progressBar = findViewById(R.id.progressBar);
         balanceTextView = findViewById(R.id.balance_textview);
+        exchangeRateTextView = findViewById(R.id.exchange_rate_text_view);
         recipientLayout = findViewById(R.id.recipient_input_layout);
         amountLayout = findViewById(R.id.amount_input_layout);
         verifiedTextView = findViewById(R.id.verified_text);
@@ -197,11 +199,18 @@ public class IdpayActivity extends AppCompatActivity {
                 Toast.makeText(this, "Transaction Failed: " + errorMessage, Toast.LENGTH_LONG).show();
             }
         });
+
+        viewModel.getExchangeRate().observe(this, rate -> {
+            if (rate != null) {
+                exchangeRateTextView.setText(rate);
+            }
+        });
     }
 
     private void loadInitialData() {
         currentBalance = WalletStorage.getRawBalance(this);
         balanceTextView.setText(WalletStorage.getFormattedBalance(this));
+        viewModel.fetchExchangeRate();
     }
 
     private void setLoadingState(boolean isLoading) {

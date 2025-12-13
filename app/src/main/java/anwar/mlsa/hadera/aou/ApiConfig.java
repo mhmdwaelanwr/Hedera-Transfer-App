@@ -5,6 +5,7 @@ import java.util.HashMap;
 public class ApiConfig {
 
     public static final String BASE_URL = "https://mlsa-hedera-transfer-api.vercel.app";
+    public static final String EXCHANGE_RATE_URL = "https://testnet.mirrornode.hedera.com/api/v1/network/exchangerate";
     
     public static final String VERIFY_ENDPOINT = "/account/verify";
     public static final String BALANCE_ENDPOINT = "/account/balance/{accountId}";

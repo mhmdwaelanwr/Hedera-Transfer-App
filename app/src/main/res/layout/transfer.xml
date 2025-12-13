@@ -103,6 +103,18 @@
                             app:layout_constraintEnd_toEndOf="parent"
                             tools:text="1,234.56 HBAR" />
 
+                        <TextView
+                            android:id="@+id/exchange_rate_text_view"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/segoe_ui_regular"
+                            android:textAppearance="?attr/textAppearanceBody2"
+                            android:textColor="@color/white"
+                            app:layout_constraintTop_toBottomOf="@id/balanceTextView"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            tools:text="1 HBAR = $0.078" />
+
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

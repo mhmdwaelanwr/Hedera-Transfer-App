@@ -2,9 +2,11 @@ package anwar.mlsa.hadera.aou.data.repository;
 
 import android.content.Context;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -22,11 +24,21 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     private static final String SEND_TX_TAG = "SEND_TRANSACTION";
     private static final String BALANCE_TAG = "GET_BALANCE";
     private static final String HISTORY_TAG = "GET_HISTORY";
+    private static final String EXCHANGE_RATE_TAG = "GET_EXCHANGE_RATE";
     private static final String HEDERA_API_BASE_URL = "https://testnet.mirrornode.hedera.com";
 
     private final RequestNetwork networkReq;
     private final Context context;
     private final Gson gson = new Gson();
+
+    private static class ExchangeRateResponse {
+        Rate current_rate;
+    }
+
+    private static class Rate {
+        int cent_equivalent;
+        int hbar_equivalent;
+    }
 
     public TransactionRepositoryImpl(Context context) {
         this.context = context.getApplicationContext();
@@ -102,6 +114,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                     callback.accept(new Result.Error<>("Failed to parse balance response."));
                 }
             }
+
             @Override
             public void onErrorResponse(String tag, String message) {
                 callback.accept(new Result.Error<>(message));
@@ -123,6 +136,39 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                     callback.accept(new Result.Error<>("Failed to parse history response."));
                 }
             }
+            @Override
+            public void onErrorResponse(String tag, String message) {
+                callback.accept(new Result.Error<>(message));
+            }
+        });
+    }
+
+    @Override
+    public void getExchangeRate(Consumer<Result<String>> callback) {
+        callback.accept(new Result.Loading<>());
+        networkReq.startRequestNetwork(RequestNetworkController.GET, ApiConfig.EXCHANGE_RATE_URL, EXCHANGE_RATE_TAG, new RequestNetwork.RequestListener() {
+            @Override
+            public void onResponse(String tag, String response, HashMap<String, Object> responseHeaders) {
+                try {
+                    ExchangeRateResponse rateResponse = gson.fromJson(response, ExchangeRateResponse.class);
+                    if (rateResponse != null && rateResponse.current_rate != null) {
+                        int cents = rateResponse.current_rate.cent_equivalent;
+                        int hbars = rateResponse.current_rate.hbar_equivalent;
+                        if (hbars > 0) {
+                            double rate = (double) cents / hbars;
+                            String rateText = String.format(Locale.US, "1 HBAR = $%.3f", rate);
+                            callback.accept(new Result.Success<>(rateText));
+                        } else {
+                            callback.accept(new Result.Error<>("Invalid exchange rate data."));
+                        }
+                    } else {
+                        callback.accept(new Result.Error<>("Could not parse exchange rate response."));
+                    }
+                } catch (JsonSyntaxException e) {
+                    callback.accept(new Result.Error<>("Could not parse exchange rate response."));
+                }
+            }
+
             @Override
             public void onErrorResponse(String tag, String message) {
                 callback.accept(new Result.Error<>(message));
