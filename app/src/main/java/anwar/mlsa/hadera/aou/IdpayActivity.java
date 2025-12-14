@@ -212,7 +212,6 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
         amountEditText = findViewById(R.id.amount_field);
         memoEditText = findViewById(R.id.memo_field);
         sendButton = findViewById(R.id.send_button);
-        findViewById(R.id.connect_wallet_button).setVisibility(View.GONE);
         progressBar = findViewById(R.id.progressBar);
         balanceTextView = findViewById(R.id.balance_textview);
         exchangeRateTextView = findViewById(R.id.exchange_rate_text_view);
