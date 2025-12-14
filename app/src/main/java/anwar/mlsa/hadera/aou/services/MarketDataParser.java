@@ -36,21 +36,45 @@ public class MarketDataParser {
         return null;
     }
 
+    /**
+     * Parse historical price data from CoinGecko API.
+     * 
+     * NOTE: This method is currently incomplete and returns an empty map.
+     * It is intended for future enhancement to support historical price tracking.
+     * 
+     * When fully implemented, this method should:
+     * 1. Parse the "prices" array from CoinGecko's market_chart endpoint
+     * 2. Extract [timestamp, price] pairs
+     * 3. Return a map of timestamp -> price for historical lookups
+     * 
+     * Current usage: Not actively used in the application.
+     * Future usage: Transaction history export with historical prices.
+     * 
+     * @param response JSON response from CoinGecko market_chart API
+     * @param fiatCurrency The fiat currency code
+     * @return Map of timestamp to price (currently empty)
+     */
     public static HashMap<String, Double> parseHistoricalPrice(String response, String fiatCurrency) {
         HashMap<String, Double> prices = new HashMap<>();
+        
+        // TODO: Implement full historical price parsing when needed
+        // This is intentionally left incomplete as historical pricing
+        // is not required for current feature set
+        
         try {
             Gson gson = new Gson();
             JsonObject root = gson.fromJson(response, JsonObject.class);
             
             if (root.has("prices")) {
                 // CoinGecko returns prices as [[timestamp, price], ...]
-                // TODO: Implement full historical price parsing
-                // For now, this is a placeholder for future enhancement
-                // Full implementation would:
-                // 1. Parse the prices array
-                // 2. Map timestamps to prices
-                // 3. Return a map of timestamp -> price
-                // Example: prices.put("1234567890", 0.05);
+                // Example implementation:
+                // JsonArray pricesArray = root.getAsJsonArray("prices");
+                // for (JsonElement element : pricesArray) {
+                //     JsonArray pair = element.getAsJsonArray();
+                //     long timestamp = pair.get(0).getAsLong();
+                //     double price = pair.get(1).getAsDouble();
+                //     prices.put(String.valueOf(timestamp), price);
+                // }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error parsing historical price response", e);

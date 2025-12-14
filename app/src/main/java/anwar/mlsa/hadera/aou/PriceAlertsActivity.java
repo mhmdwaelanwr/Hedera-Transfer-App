@@ -128,7 +128,7 @@ public class PriceAlertsActivity extends AppCompatActivity {
                         int currencyIndex = currencySpinner.getSelectedItemPosition();
                         String currency = CurrencyPreferenceService.SUPPORTED_CURRENCIES[currencyIndex];
 
-                        boolean success = PriceAlertService.addAlert(this, targetPrice, direction, currency.toUpperCase());
+                        boolean success = PriceAlertService.addAlert(this, targetPrice, direction, currency);
                         if (success) {
                             Toast.makeText(this, "Price alert created", Toast.LENGTH_SHORT).show();
                             loadPriceAlerts();

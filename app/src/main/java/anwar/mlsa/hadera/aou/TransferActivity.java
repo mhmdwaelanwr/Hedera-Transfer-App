@@ -425,11 +425,15 @@ public class TransferActivity extends AppCompatActivity {
                 ContextCompat.getColor(this, android.R.color.holo_red_light);
             binding.priceChange24hTextView.setTextColor(color);
             
-            // Update balance in fiat using market data
+            // Calculate and update balance in fiat
+            // The balance card now shows both HBAR and fiat equivalent
             double balance = WalletStorage.getRawBalance(this);
             double balanceInFiat = balance * currentMarketData.getPrice();
-            String formattedBalanceInFiat = String.format(Locale.US, "%s%,.2f", symbol, balanceInFiat);
-            // You could add another TextView to show this, or update existing one
+            String formattedBalanceInFiat = String.format(Locale.US, "≈ %s%,.2f", symbol, balanceInFiat);
+            // Display this on the balance card subtitle or exchange rate text
+            // For now, we show it as the rate, but could add a separate TextView
+            String combinedText = rateText + " | " + formattedBalanceInFiat;
+            binding.exchangeRateTextView.setText(combinedText);
         });
     }
 

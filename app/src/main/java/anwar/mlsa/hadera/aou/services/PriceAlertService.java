@@ -76,6 +76,7 @@ public class PriceAlertService {
             return triggeredAlerts;
         }
         
+        // First pass: identify triggered alerts
         for (PriceAlert alert : alerts) {
             if (alert.isActive() && alert.getFiatCurrency() != null && 
                 alert.getFiatCurrency().equalsIgnoreCase(fiatCurrency)) {
@@ -88,13 +89,15 @@ public class PriceAlertService {
                 
                 if (triggered) {
                     triggeredAlerts.add(alert);
-                    // Deactivate the alert so it doesn't trigger again
-                    alert.setActive(false);
                 }
             }
         }
         
+        // Second pass: deactivate triggered alerts
         if (!triggeredAlerts.isEmpty()) {
+            for (PriceAlert triggeredAlert : triggeredAlerts) {
+                triggeredAlert.setActive(false);
+            }
             savePriceAlerts(context, alerts);
         }
         
