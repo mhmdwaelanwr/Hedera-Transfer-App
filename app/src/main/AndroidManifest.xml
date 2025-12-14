@@ -9,8 +9,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.hardware.usb.host" />
+
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" />
+
 
     <application
         android:name=".MyApplication"
@@ -33,7 +37,17 @@
         </activity>
         <activity android:name=".MainActivity" />
         <activity android:name=".TransferActivity" />
-        <activity android:name=".IdpayActivity" />
+        <activity android:name=".IdpayActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+        </activity>
         <activity android:name=".SentpayActivity" />
         <activity android:name=".HistoryActivity" />
         <activity android:name=".ReceiveQrActivity" />
@@ -42,7 +56,11 @@
         <activity android:name=".ScannerqrActivity" />
         <activity android:name=".SettingsActivity" />
         <activity android:name=".TransactionDetailsActivity" />
-
+        <service
+            android:name=".hardware.HardwareWalletService"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedService" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

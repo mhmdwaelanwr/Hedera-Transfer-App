@@ -8,6 +8,11 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.hedera.hashgraph.sdk.AccountId;
+import com.hedera.hashgraph.sdk.Hbar;
+import com.hedera.hashgraph.sdk.TransferTransaction;
+
+import java.math.BigDecimal;
 import java.util.Map;
 
 import anwar.mlsa.hadera.aou.domain.use_case.GetExchangeRateUseCase;
@@ -129,6 +134,19 @@ public class IdpayViewModel extends AndroidViewModel {
                 transactionResult.postValue(result);
             }
         });
+    }
+
+    public TransferTransaction createUnsignedTransaction(String senderAccountId, String recipientId, String amountStr, String memo) {
+        try {
+            BigDecimal amount = new BigDecimal(amountStr);
+            return new TransferTransaction()
+                    .addHbarTransfer(AccountId.fromString(senderAccountId), Hbar.from(amount).negated())
+                    .addHbarTransfer(AccountId.fromString(recipientId), Hbar.from(amount))
+                    .setTransactionMemo(memo);
+        } catch (NumberFormatException e) {
+            // Handle error appropriately
+            return null;
+        }
     }
 
     private void saveTransactionToHistory(String amount, String receiverId, String memo) {

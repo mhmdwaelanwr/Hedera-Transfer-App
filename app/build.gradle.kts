@@ -55,6 +55,9 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
+    // Hedera
+    implementation("com.hedera.hashgraph:sdk:2.26.0")
+
     // Other dependencies
     implementation("com.github.yuriy-budiyev:code-scanner:2.3.2")
     implementation("com.google.zxing:core:3.5.4")
@@ -72,4 +75,10 @@ dependencies {
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Guava
+    implementation("com.google.guava:guava:33.0.0-android")
+
+    // USB Serial
+    implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
 }
