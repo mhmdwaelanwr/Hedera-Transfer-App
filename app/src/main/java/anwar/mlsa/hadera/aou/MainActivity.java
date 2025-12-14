@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private TextInputLayout accountIdLayout;
     private TextInputLayout privateKeyLayout;
     private Button loginButton;
+    private Button connectHardwareWalletButton;
     private ProgressBar progressBar;
     private TextView welcomeMessage;
 
@@ -58,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         accountIdLayout = findViewById(R.id.account_id_layout);
         privateKeyLayout = findViewById(R.id.private_key_layout);
         loginButton = findViewById(R.id.login_button);
+        connectHardwareWalletButton = findViewById(R.id.connect_hardware_wallet_button);
         progressBar = findViewById(R.id.progress_bar);
         TextView registerNow = findViewById(R.id.register_now);
         TextView mlsaEg = findViewById(R.id.mlsa_eg);
@@ -70,6 +72,14 @@ public class MainActivity extends AppCompatActivity {
             VibrationManager.vibrate(this);
             handleLogin();
         });
+
+        connectHardwareWalletButton.setOnClickListener(v -> {
+            VibrationManager.vibrate(this);
+            // Intent to start the new HardwareWalletSetupActivity
+            Intent intent = new Intent(MainActivity.this, HardwareWalletSetupActivity.class);
+            startActivity(intent);
+        });
+
         registerNow.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             openUrl("https://portal.hedera.com/register");
