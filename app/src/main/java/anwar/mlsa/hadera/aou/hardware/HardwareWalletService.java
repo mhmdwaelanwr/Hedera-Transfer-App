@@ -25,6 +25,7 @@ import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
@@ -34,18 +35,22 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     private static final String TAG = "HardwareWalletService";
     private static final String ACTION_USB_PERMISSION = "anwar.mlsa.hadera.aou.USB_PERMISSION";
     private static final int LEDGER_VID = 11415; // Vendor ID for Ledger
-    private static final int SIGNING_TIMEOUT_MS = 20000; // 20 seconds
+    private static final int TIMEOUT_MS = 20000;
 
     public enum ConnectionStatus {DISCONNECTED, SEARCHING, CONNECTED, ERROR}
+    private enum PendingOperation {NONE, GET_ACCOUNT, SIGN_TRANSACTION}
 
     private final IBinder binder = new LocalBinder();
     private UsbManager usbManager;
     private UsbSerialPort usbSerialPort;
     private SerialInputOutputManager serialInputOutputManager;
+
     private HardwareWalletListener signingListener;
+    private AccountInfoListener accountInfoListener;
+    private PendingOperation currentOperation = PendingOperation.NONE;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private Runnable signingTimeoutRunnable;
+    private Runnable operationTimeoutRunnable;
 
     private final MutableLiveData<ConnectionStatus> _connectionStatus = new MutableLiveData<>(ConnectionStatus.DISCONNECTED);
     public final LiveData<ConnectionStatus> connectionStatus = _connectionStatus;
@@ -53,6 +58,11 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     public interface HardwareWalletListener {
         void onSignatureReceived(byte[] signature);
         void onSignatureError(Exception e);
+    }
+
+    public interface AccountInfoListener {
+        void onAccountInfoReceived(String accountId);
+        void onAccountInfoError(Exception e);
     }
 
     public class LocalBinder extends Binder {
@@ -64,17 +74,12 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (ACTION_USB_PERMISSION.equals(action)) {
+            if (ACTION_USB_PERMISSION.equals(intent.getAction())) {
                 synchronized (this) {
                     UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (device != null) {
-                            Log.d(TAG, "Permission granted for device " + device.getDeviceName());
-                            connectToDevice(device);
-                        }
+                        if (device != null) connectToDevice(device);
                     } else {
-                        Log.d(TAG, "Permission denied for device " + device.getDeviceName());
                         _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
                     }
                 }
@@ -97,13 +102,8 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     }
 
     public void findAndConnectToDevice() {
-        if (_connectionStatus.getValue() == ConnectionStatus.CONNECTED || _connectionStatus.getValue() == ConnectionStatus.SEARCHING) {
-            return;
-        }
-        
+        if (_connectionStatus.getValue() == ConnectionStatus.CONNECTED || _connectionStatus.getValue() == ConnectionStatus.SEARCHING) return;
         _connectionStatus.setValue(ConnectionStatus.SEARCHING);
-
-        // Post a small delay to allow the UI to update before starting the heavy work.
         mainHandler.postDelayed(() -> {
             List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
             if (availableDrivers.isEmpty()) {
@@ -116,14 +116,14 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
                     if (usbManager.hasPermission(device)) {
                         connectToDevice(device);
                     } else {
-                        PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-                        usbManager.requestPermission(device, permissionIntent);
+                        PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+                        usbManager.requestPermission(device, pi);
                     }
-                    return; 
+                    return;
                 }
             }
             _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
-        }, 100); 
+        }, 100);
     }
 
     private void connectToDevice(UsbDevice device) {
@@ -150,7 +150,7 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     }
 
     public void disconnect() {
-        cancelSigningTimeout();
+        cancelOperationTimeout();
         if (serialInputOutputManager != null) {
             serialInputOutputManager.stop();
             serialInputOutputManager = null;
@@ -161,72 +161,122 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
             } catch (IOException ignored) {}
             usbSerialPort = null;
         }
+        currentOperation = PendingOperation.NONE;
         _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
     }
 
     public void signTransaction(byte[] unsignedTransaction, HardwareWalletListener listener) {
-        if (_connectionStatus.getValue() != ConnectionStatus.CONNECTED || usbSerialPort == null) {
-            listener.onSignatureError(new IOException("Not connected to hardware wallet."));
+        if (_connectionStatus.getValue() != ConnectionStatus.CONNECTED) {
+            listener.onSignatureError(new IOException("Not connected"));
             return;
         }
         this.signingListener = listener;
-
+        this.currentOperation = PendingOperation.SIGN_TRANSACTION;
         try {
-            byte[] apduCommand = createSigningApdu(unsignedTransaction);
-            usbSerialPort.write(apduCommand, 2000);
-            startSigningTimeout();
+            usbSerialPort.write(createSigningApdu(unsignedTransaction), TIMEOUT_MS);
+            startOperationTimeout("Signing timed out.");
         } catch (IOException e) {
             listener.onSignatureError(e);
         }
     }
-
-    private void startSigningTimeout() {
-        cancelSigningTimeout();
-        signingTimeoutRunnable = () -> {
-            if (signingListener != null) {
-                signingListener.onSignatureError(new TimeoutException("Hardware wallet signing timed out."));
-                signingListener = null;
-            }
-        };
-        mainHandler.postDelayed(signingTimeoutRunnable, SIGNING_TIMEOUT_MS);
-    }
-
-    private void cancelSigningTimeout() {
-        if (signingTimeoutRunnable != null) {
-            mainHandler.removeCallbacks(signingTimeoutRunnable);
-            signingTimeoutRunnable = null;
+    
+    public void requestAccountInfo(AccountInfoListener listener) {
+        if (_connectionStatus.getValue() != ConnectionStatus.CONNECTED) {
+            listener.onAccountInfoError(new IOException("Not connected"));
+            return;
+        }
+        this.accountInfoListener = listener;
+        this.currentOperation = PendingOperation.GET_ACCOUNT;
+        try {
+            usbSerialPort.write(createGetAccountApdu(), TIMEOUT_MS);
+            startOperationTimeout("Request for account info timed out.");
+        } catch (IOException e) {
+            listener.onAccountInfoError(e);
         }
     }
 
+    private void startOperationTimeout(String message) {
+        cancelOperationTimeout();
+        operationTimeoutRunnable = () -> {
+            Exception e = new TimeoutException(message);
+            switch (currentOperation) {
+                case SIGN_TRANSACTION:
+                    if (signingListener != null) signingListener.onSignatureError(e);
+                    break;
+                case GET_ACCOUNT:
+                    if (accountInfoListener != null) accountInfoListener.onAccountInfoError(e);
+                    break;
+            }
+            clearListeners();
+        };
+        mainHandler.postDelayed(operationTimeoutRunnable, TIMEOUT_MS);
+    }
+
+    private void cancelOperationTimeout() {
+        if (operationTimeoutRunnable != null) {
+            mainHandler.removeCallbacks(operationTimeoutRunnable);
+            operationTimeoutRunnable = null;
+        }
+    }
+    
+    private void clearListeners() {
+        signingListener = null;
+        accountInfoListener = null;
+        currentOperation = PendingOperation.NONE;
+    }
+
     private byte[] createSigningApdu(byte[] transaction) {
-        byte cla = (byte) 0xE0;
-        byte ins = 0x04;
-        byte p1 = 0x00;
-        byte p2 = 0x00;
-        byte lc = (byte) transaction.length;
-        byte[] header = {cla, ins, p1, p2, lc};
+        // Placeholder: Real APDU for signing from Ledger Hedera app docs
+        byte[] header = {(byte) 0xE0, 0x04, 0x00, 0x00, (byte) transaction.length};
         byte[] apdu = new byte[header.length + transaction.length];
         System.arraycopy(header, 0, apdu, 0, header.length);
         System.arraycopy(transaction, 0, apdu, header.length, transaction.length);
         return apdu;
     }
 
+    private byte[] createGetAccountApdu() {
+        // Placeholder: Real APDU for getting account ID from Ledger Hedera app docs
+        // This usually involves specifying the key index (e.g., 0)
+        return new byte[]{(byte) 0xE0, 0x02, 0x00, 0x00, 0x00};
+    }
+
     @Override
     public void onNewData(byte[] data) {
-        cancelSigningTimeout();
-        if (signingListener != null) {
-            signingListener.onSignatureReceived(data);
-            signingListener = null;
+        cancelOperationTimeout();
+        try {
+            switch (currentOperation) {
+                case SIGN_TRANSACTION:
+                    if (signingListener != null) {
+                        // TODO: Parse response to get actual signature
+                        signingListener.onSignatureReceived(data);
+                    }
+                    break;
+                case GET_ACCOUNT:
+                    if (accountInfoListener != null) {
+                        // TODO: Parse response to get actual account ID string
+                        // For now, assume the response is the account ID in UTF-8
+                        String accountId = new String(data, StandardCharsets.UTF_8).trim();
+                        accountInfoListener.onAccountInfoReceived(accountId);
+                    }
+                    break;
+            }
+        } finally {
+            clearListeners();
         }
     }
 
     @Override
     public void onRunError(Exception e) {
-        cancelSigningTimeout();
-        if (signingListener != null) {
-            signingListener.onSignatureError(e);
-            signingListener = null;
+        cancelOperationTimeout();
+        switch (currentOperation) {
+            case SIGN_TRANSACTION:
+                if (signingListener != null) signingListener.onSignatureError(e);
+                break;
+            case GET_ACCOUNT:
+                if (accountInfoListener != null) accountInfoListener.onAccountInfoError(e);
+                break;
         }
+        clearListeners();
         disconnect();
     }
 

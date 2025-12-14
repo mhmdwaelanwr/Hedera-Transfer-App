@@ -18,7 +18,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import anwar.mlsa.hadera.aou.hardware.HardwareWalletService;
 
-public class HardwareWalletSetupActivity extends AppCompatActivity {
+public class HardwareWalletSetupActivity extends AppCompatActivity implements HardwareWalletService.AccountInfoListener {
 
     private static final String TAG = "HWSetupActivity";
 
@@ -84,6 +84,7 @@ public class HardwareWalletSetupActivity extends AppCompatActivity {
     }
 
     private void observeHardwareWalletStatus() {
+        if (!isBound) return;
         hardwareWalletService.connectionStatus.observe(this, status -> {
             switch (status) {
                 case DISCONNECTED:
@@ -97,10 +98,10 @@ public class HardwareWalletSetupActivity extends AppCompatActivity {
                     instructionsText.setText("Searching for device...");
                     break;
                 case CONNECTED:
-                    progressBar.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.VISIBLE); // Keep it visible
                     findDeviceButton.setEnabled(false);
                     instructionsText.setText("Device connected! Now getting your account ID...");
-                    // TODO: Call a new method on the service to get the account ID
+                    hardwareWalletService.requestAccountInfo(this);
                     break;
                 case ERROR:
                     progressBar.setVisibility(View.GONE);
@@ -109,6 +110,41 @@ public class HardwareWalletSetupActivity extends AppCompatActivity {
                     Toast.makeText(this, "Could not connect to the device.", Toast.LENGTH_SHORT).show();
                     break;
             }
+        });
+    }
+
+    @Override
+    public void onAccountInfoReceived(String accountId) {
+        Log.d(TAG, "Account ID received: " + accountId);
+        runOnUiThread(() -> {
+            if (WalletStorage.addHardwareAccount(this, accountId)) {
+                // Set the new account as current
+                int newAccountIndex = WalletStorage.getAccounts(this).size() - 1;
+                WalletStorage.setCurrentAccountIndex(this, newAccountIndex);
+                
+                Toast.makeText(this, "Wallet connected successfully!", Toast.LENGTH_SHORT).show();
+                
+                Intent intent = new Intent(this, TransferActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            } else {
+                Toast.makeText(this, "Could not add hardware wallet. It might already exist or storage is full.", Toast.LENGTH_LONG).show();
+                progressBar.setVisibility(View.GONE);
+                findDeviceButton.setEnabled(true);
+                instructionsText.setText("An error occurred. Please try again.");
+            }
+        });
+    }
+
+    @Override
+    public void onAccountInfoError(Exception e) {
+        Log.e(TAG, "Failed to get account info", e);
+        runOnUiThread(() -> {
+            progressBar.setVisibility(View.GONE);
+            findDeviceButton.setEnabled(true);
+            instructionsText.setText("Failed to get account info. Please ensure the Hedera app is open on your device and try again.");
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 }

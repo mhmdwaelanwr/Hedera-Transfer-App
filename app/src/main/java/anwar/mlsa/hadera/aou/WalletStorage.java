@@ -63,12 +63,20 @@ public class WalletStorage {
     }
 
     public static boolean addAccount(Context context, String accountId, String privateKey) {
+        return addAccount(context, accountId, privateKey, false);
+    }
+
+    public static boolean addHardwareAccount(Context context, String accountId) {
+        return addAccount(context, accountId, "", true);
+    }
+
+    private static boolean addAccount(Context context, String accountId, String privateKey, boolean isHardware) {
         List<Account> accounts = getAccounts(context);
         if (accounts.size() >= MAX_ACCOUNTS) return false;
         for (Account account : accounts) {
-            if (account.getAccountId().equals(accountId)) return false;
+            if (account.getAccountId().equals(accountId)) return false; // Account already exists
         }
-        accounts.add(new Account(accountId, privateKey));
+        accounts.add(new Account(accountId, privateKey, isHardware));
         saveAccounts(context, accounts);
         if (accounts.size() == 1) setCurrentAccountIndex(context, 0);
         return true;
@@ -123,7 +131,8 @@ public class WalletStorage {
 
     public static String getPrivateKey(Context context) {
         Account currentAccount = getCurrentAccount(context);
-        return (currentAccount != null) ? currentAccount.getPrivateKey() : null;
+        if (currentAccount == null || currentAccount.isHardware) return null;
+        return currentAccount.getPrivateKey();
     }
 
     public static void saveFormattedBalance(Context context, String formattedBalance) {
@@ -149,7 +158,8 @@ public class WalletStorage {
         String accountId = getAccountId(context);
         return (accountId != null) ? Double.longBitsToDouble(getPrefs(context).getLong(accountId + SUFFIX_RAW_BALANCE, 0L)) : 0.0;
     }
-
+    
+    // ... (rest of the history methods remain the same)
     private static void migrateHistoryIfNecessary(Context context, String accountId) {
         SharedPreferences prefs = getPrefs(context);
         boolean isMigrated = prefs.getBoolean(accountId + SUFFIX_HISTORY_MIGRATED, false);
@@ -230,17 +240,20 @@ public class WalletStorage {
         }
     }
 
+
     public static void logout(Context context) {
         getPrefs(context).edit().clear().apply();
     }
 
     public static class Account {
-        private String accountId;
-        private String privateKey;
+        private final String accountId;
+        private final String privateKey;
+        public final boolean isHardware;
 
-        public Account(String accountId, String privateKey) {
+        public Account(String accountId, String privateKey, boolean isHardware) {
             this.accountId = accountId;
             this.privateKey = privateKey;
+            this.isHardware = isHardware;
         }
 
         public String getAccountId() {
