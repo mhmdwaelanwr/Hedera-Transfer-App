@@ -1,0 +1,70 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'anwar.mlsa.hadera.aou'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "anwar.mlsa.hadera.aou"
+        minSdk 36
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        signingConfig signingConfigs.debug
+        multiDexEnabled true
+        testFunctionalTest true
+        testHandleProfiling true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+    dependenciesInfo {
+        includeInApk true
+        includeInBundle true
+    }
+    ndkVersion '28.2.13676358'
+    buildToolsVersion '36.1.0'
+}
+
+dependencies {
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
+    implementation 'com.squareup.okhttp3:okhttp:5.3.2'
+    implementation "com.android.volley:volley:1.2.1"
+    implementation 'com.github.bumptech.glide:glide:5.0.5'
+    annotationProcessor 'com.github.bumptech.glide:compiler:5.0.5'
+    implementation 'com.hedera.hashgraph:sdk:2.66.0'
+    implementation "com.github.yuriy-budiyev:code-scanner:2.3.2"
+    implementation "com.google.zxing:core:3.5.4"
+    implementation "com.google.code.gson:gson:2.13.2"
+    implementation 'androidx.work:work-runtime:2.11.1'
+    implementation "androidx.biometric:biometric:1.1.0"
+    implementation "androidx.security:security-crypto:1.1.0"
+    implementation "com.jakewharton.timber:timber:5.0.1"
+    implementation 'com.google.guava:guava:33.5.0-android'
+    implementation "com.github.mik3y:usb-serial-for-android:3.7.0"
+}

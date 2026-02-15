@@ -26,7 +26,7 @@ import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
@@ -35,14 +35,14 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
 
     private static final String TAG = "HardwareWalletService";
     private static final String ACTION_USB_PERMISSION = "anwar.mlsa.hadera.aou.USB_PERMISSION";
-    private static final int LEDGER_VID = 11415; // Vendor ID for Ledger
-    private static final int TIMEOUT_MS = 20000;
+    private static final int LEDGER_VID = 0x2C97; // Real Ledger Vendor ID
+    private static final int TIMEOUT_MS = 30000;
 
-    // APDU constants based on https://github.com/hashgraph/hedera-ledger-app/blob/main/src/hedera/handlers.h
+    // APDU constants for Hedera Ledger App
     private static final byte CLA = (byte) 0xE0;
-    private static final byte INS_GET_APP_CONFIGURATION = 0x01;
     private static final byte INS_GET_PUBKEY = 0x02;
     private static final byte INS_SIGN_TX = 0x04;
+    private static final int SW_OK = 0x9000;
 
     public enum ConnectionStatus {DISCONNECTED, SEARCHING, CONNECTED, ERROR}
     private enum PendingOperation {NONE, GET_ACCOUNT, SIGN_TRANSACTION}
@@ -69,7 +69,7 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     }
 
     public interface AccountInfoListener {
-        void onAccountInfoReceived(int accountIndex, String accountId);
+        void onAccountInfoReceived(int accountIndex, byte[] publicKey);
         void onAccountInfoError(int accountIndex, Exception e);
     }
 
@@ -99,7 +99,8 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     public void onCreate() {
         super.onCreate();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        registerReceiver(usbReceiver, new IntentFilter(ACTION_USB_PERMISSION));
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
@@ -112,26 +113,26 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     public void findAndConnectToDevice() {
         if (_connectionStatus.getValue() == ConnectionStatus.CONNECTED || _connectionStatus.getValue() == ConnectionStatus.SEARCHING) return;
         _connectionStatus.setValue(ConnectionStatus.SEARCHING);
-        mainHandler.postDelayed(() -> {
-            List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
-            if (availableDrivers.isEmpty()) {
-                _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
+        
+        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
+        if (availableDrivers.isEmpty()) {
+            _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
+            return;
+        }
+        for (UsbSerialDriver driver : availableDrivers) {
+            UsbDevice device = driver.getDevice();
+            // Checking both Ledger VID and common USB-Serial VIDs if testing with bridge
+            if (device.getVendorId() == LEDGER_VID || device.getVendorId() == 11415) {
+                if (usbManager.hasPermission(device)) {
+                    connectToDevice(device);
+                } else {
+                    PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+                    usbManager.requestPermission(device, pi);
+                }
                 return;
             }
-            for (UsbSerialDriver driver : availableDrivers) {
-                UsbDevice device = driver.getDevice();
-                if (device.getVendorId() == LEDGER_VID) {
-                    if (usbManager.hasPermission(device)) {
-                        connectToDevice(device);
-                    } else {
-                        PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-                        usbManager.requestPermission(device, pi);
-                    }
-                    return;
-                }
-            }
-            _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
-        }, 100);
+        }
+        _connectionStatus.postValue(ConnectionStatus.DISCONNECTED);
     }
 
     private void connectToDevice(UsbDevice device) {
@@ -153,6 +154,7 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
             Executors.newSingleThreadExecutor().submit(serialInputOutputManager);
             _connectionStatus.postValue(ConnectionStatus.CONNECTED);
         } catch (IOException e) {
+            Log.e(TAG, "Connection failed", e);
             disconnect();
         }
     }
@@ -181,7 +183,9 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         this.signingListener = listener;
         this.currentOperation = PendingOperation.SIGN_TRANSACTION;
         try {
-            usbSerialPort.write(createSignTransactionApdu(unsignedTransaction), TIMEOUT_MS);
+            // Hedera transactions can be large, we might need chunking for complex ones
+            byte[] apdu = createSignTransactionApdu(unsignedTransaction);
+            usbSerialPort.write(apdu, TIMEOUT_MS);
             startOperationTimeout();
         } catch (IOException e) {
             listener.onSignatureError(e);
@@ -197,20 +201,80 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         this.currentOperation = PendingOperation.GET_ACCOUNT;
         this.activeAccountIndex = accountIndex;
         try {
-            usbSerialPort.write(createGetPublicKeyApdu(accountIndex), TIMEOUT_MS);
+            byte[] apdu = createGetPublicKeyApdu(accountIndex);
+            usbSerialPort.write(apdu, TIMEOUT_MS);
             startOperationTimeout();
         } catch (IOException e) {
             listener.onAccountInfoError(accountIndex, e);
         }
     }
 
+    private byte[] createBip32Path(int accountIndex) {
+        // Path: 44'/3030'/accountIndex'/0/0
+        ByteBuffer bb = ByteBuffer.allocate(20);
+        bb.putInt(0x8000002C); // 44'
+        bb.putInt(0x80000BD6); // 3030'
+        bb.putInt(0x80000000 | accountIndex); // accountIndex'
+        bb.putInt(0); // 0
+        bb.putInt(0); // 0
+        return bb.array();
+    }
+
+    private byte[] createGetPublicKeyApdu(int accountIndex) {
+        byte[] path = createBip32Path(accountIndex);
+        byte[] header = {CLA, INS_GET_PUBKEY, 0x00, 0x01, (byte) path.length}; // P2=0x01 to display on screen
+        byte[] apdu = new byte[header.length + path.length];
+        System.arraycopy(header, 0, apdu, 0, header.length);
+        System.arraycopy(path, 0, apdu, header.length, path.length);
+        return apdu;
+    }
+
+    private byte[] createSignTransactionApdu(byte[] transaction) {
+        // Hedera Ledger app expects: Path (20 bytes) + Transaction Body
+        byte[] path = createBip32Path(activeAccountIndex != -1 ? activeAccountIndex : 0);
+        byte[] header = {CLA, INS_SIGN_TX, 0x00, 0x00, (byte) (path.length + transaction.length)};
+        byte[] apdu = new byte[header.length + path.length + transaction.length];
+        System.arraycopy(header, 0, apdu, 0, header.length);
+        System.arraycopy(path, 0, apdu, header.length, path.length);
+        System.arraycopy(transaction, 0, apdu, header.length + path.length, transaction.length);
+        return apdu;
+    }
+
+    @Override
+    public void onNewData(byte[] data) {
+        cancelOperationTimeout();
+        if (data.length < 2) return;
+
+        // Last 2 bytes are Status Word (SW)
+        int sw = ((data[data.length - 2] & 0xFF) << 8) | (data[data.length - 1] & 0xFF);
+        byte[] responseData = Arrays.copyOfRange(data, 0, data.length - 2);
+
+        mainHandler.post(() -> {
+            if (sw != SW_OK) {
+                handleError(new Exception("Ledger Error: " + String.format("0x%04X", sw)));
+                return;
+            }
+
+            try {
+                switch (currentOperation) {
+                    case SIGN_TRANSACTION:
+                        if (signingListener != null) signingListener.onSignatureReceived(responseData);
+                        break;
+                    case GET_ACCOUNT:
+                        if (accountInfoListener != null) {
+                            accountInfoListener.onAccountInfoReceived(activeAccountIndex, responseData);
+                        }
+                        break;
+                }
+            } finally {
+                clearListeners();
+            }
+        });
+    }
+
     private void startOperationTimeout() {
         cancelOperationTimeout();
-        final String message = currentOperation == PendingOperation.GET_ACCOUNT ? "Request for account info timed out." : "Signing timed out.";
-        operationTimeoutRunnable = () -> {
-            Exception e = new TimeoutException(message);
-            handleError(e);
-        };
+        operationTimeoutRunnable = () -> handleError(new TimeoutException("Ledger operation timed out"));
         mainHandler.postDelayed(operationTimeoutRunnable, TIMEOUT_MS);
     }
 
@@ -225,71 +289,21 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         signingListener = null;
         accountInfoListener = null;
         currentOperation = PendingOperation.NONE;
-        activeAccountIndex = -1;
-    }
-
-    private byte[] createSignTransactionApdu(byte[] transaction) {
-        byte[] header = {CLA, INS_SIGN_TX, 0x00, 0x00, (byte) transaction.length};
-        byte[] apdu = new byte[header.length + transaction.length];
-        System.arraycopy(header, 0, apdu, 0, header.length);
-        System.arraycopy(transaction, 0, apdu, header.length, transaction.length);
-        return apdu;
-    }
-
-    private byte[] createGetPublicKeyApdu(int accountIndex) {
-        // Real path is 44'/3030'/accountIndex'
-        // This requires a more complex serialization of the path components.
-        // This is a simplified simulation.
-        ByteBuffer path = ByteBuffer.allocate(4);
-        path.putInt(accountIndex);
-        byte[] pathBytes = path.array();
-
-        byte[] header = {CLA, INS_GET_PUBKEY, 0x40, 0x00, (byte) pathBytes.length}; 
-        byte[] apdu = new byte[header.length + pathBytes.length];
-        System.arraycopy(header, 0, apdu, 0, header.length);
-        System.arraycopy(pathBytes, 0, apdu, header.length, pathBytes.length);
-        return apdu;
-    }
-
-    @Override
-    public void onNewData(byte[] data) {
-        cancelOperationTimeout();
-        try {
-            switch (currentOperation) {
-                case SIGN_TRANSACTION:
-                    if (signingListener != null) signingListener.onSignatureReceived(data);
-                    break;
-                case GET_ACCOUNT:
-                    if (accountInfoListener != null) {
-                        // TODO: Proper parsing of the response which includes public key, chain code, etc.
-                        // For now, we assume the response is the account ID string which is a simplification.
-                        String accountId = new String(data, StandardCharsets.UTF_8).trim();
-                        accountInfoListener.onAccountInfoReceived(activeAccountIndex, accountId);
-                    }
-                    break;
-            }
-        } finally {
-            clearListeners();
-        }
     }
 
     @Override
     public void onRunError(Exception e) {
-        handleError(e);
+        mainHandler.post(() -> handleError(e));
     }
 
     private void handleError(Exception e) {
         cancelOperationTimeout();
-        switch (currentOperation) {
-            case SIGN_TRANSACTION:
-                if (signingListener != null) signingListener.onSignatureError(e);
-                break;
-            case GET_ACCOUNT:
-                if (accountInfoListener != null) accountInfoListener.onAccountInfoError(activeAccountIndex, e);
-                break;
+        if (currentOperation == PendingOperation.SIGN_TRANSACTION && signingListener != null) {
+            signingListener.onSignatureError(e);
+        } else if (currentOperation == PendingOperation.GET_ACCOUNT && accountInfoListener != null) {
+            accountInfoListener.onAccountInfoError(activeAccountIndex, e);
         }
         clearListeners();
-        disconnect();
     }
 
     @Nullable

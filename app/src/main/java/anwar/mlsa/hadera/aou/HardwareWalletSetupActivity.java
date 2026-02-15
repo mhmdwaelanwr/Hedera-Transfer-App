@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import anwar.mlsa.hadera.aou.hardware.HardwareWalletService;
+import timber.log.Timber;
 
 public class HardwareWalletSetupActivity extends AppCompatActivity implements HardwareWalletService.AccountInfoListener {
 
@@ -179,11 +180,17 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
     }
 
     @Override
-    public void onAccountInfoReceived(int accountIndex, String accountId) {
-        Log.d(TAG, "Account " + accountIndex + " found: " + accountId);
+    public void onAccountInfoReceived(int accountIndex, byte[] publicKey) {
+        String publicKeyHex = bytesToHex(publicKey);
+        Timber.d("Account %d public key found: %s", accountIndex, publicKeyHex);
+        
+        // In a real scenario, you would query Hedera Mirror Node to find the AccountID associated with this public key.
+        // For now, we will use a placeholder or the Hex representation for display.
+        String placeholderAccountId = "0.0.HIDDEN-" + accountIndex; 
+
         runOnUiThread(() -> {
             accountsFound++;
-            adapter.addAccount(accountId);
+            adapter.addAccount(publicKeyHex); // Displaying public key hex for now
             accountsScanned++;
             scanNextAccount();
         });
@@ -191,10 +198,10 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
 
     @Override
     public void onAccountInfoError(int accountIndex, Exception e) {
-        Log.e(TAG, "Could not get account info for index " + accountIndex, e);
+        Timber.e(e, "Could not get account info for index %d", accountIndex);
         runOnUiThread(() -> {
             accountsScanned++;
-            scanNextAccount(); // Continue scanning next account even if one fails
+            scanNextAccount();
         });
     }
 
@@ -209,8 +216,16 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
             startActivity(intent);
             finish();
         } else {
-            Toast.makeText(this, "Could not import account. It may already exist or storage is full.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Could not import account. It may already exist.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 
     // Adapter for the RecyclerView
@@ -246,7 +261,6 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
 
         void addAccount(String accountId) {
             accountIds.add(accountId);
-            Collections.sort(accountIds);
             notifyDataSetChanged();
         }
 
@@ -266,7 +280,9 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
             }
 
             void bind(final String accountId, final OnItemClickListener listener) {
-                accountIdTextView.setText(accountId);
+                // Shorten public key for display
+                String displayId = accountId.length() > 20 ? accountId.substring(0, 10) + "..." + accountId.substring(accountId.length() - 10) : accountId;
+                accountIdTextView.setText(displayId);
                 itemView.setOnClickListener(v -> listener.onItemClick(accountId));
                 importButton.setOnClickListener(v -> listener.onItemClick(accountId));
             }
