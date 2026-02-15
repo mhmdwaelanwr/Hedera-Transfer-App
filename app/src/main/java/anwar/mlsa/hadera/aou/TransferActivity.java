@@ -3,13 +3,10 @@ package anwar.mlsa.hadera.aou;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,17 +31,15 @@ import java.util.Locale;
 import java.util.Map;
 
 import anwar.mlsa.hadera.aou.databinding.TransferBinding;
+import timber.log.Timber;
 
 public class TransferActivity extends AppCompatActivity {
 
     private TransferBinding binding;
-
     private RequestNetwork networkReq;
     private RequestNetwork.RequestListener networkListener;
-
     private HistoryAdapter historyAdapter;
     private BlogAdapter blogAdapter;
-
     private double exchangeRate = 0.0;
 
     private static final String HEDERA_API_BASE_URL = "https://testnet.mirrornode.hedera.com";
@@ -106,49 +101,40 @@ public class TransferActivity extends AppCompatActivity {
 
     private void showThemeDialog() {
         String[] themes = {"Light", "Dark", "System Default"};
-
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
         int currentTheme = prefs.getInt("theme", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         int checkedItem = currentTheme == AppCompatDelegate.MODE_NIGHT_NO ? 0 :
                 currentTheme == AppCompatDelegate.MODE_NIGHT_YES ? 1 : 2;
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Choose Theme")
+        new AlertDialog.Builder(this)
+                .setTitle("Choose Theme")
                 .setSingleChoiceItems(themes, checkedItem, (dialog, which) -> {
                     int selectedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
                     switch (which) {
-                        case 0:
-                            selectedTheme = AppCompatDelegate.MODE_NIGHT_NO;
-                            break;
-                        case 1:
-                            selectedTheme = AppCompatDelegate.MODE_NIGHT_YES;
-                            break;
-                        case 2:
-                            selectedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
-                            break;
+                        case 0: selectedTheme = AppCompatDelegate.MODE_NIGHT_NO; break;
+                        case 1: selectedTheme = AppCompatDelegate.MODE_NIGHT_YES; break;
+                        case 2: selectedTheme = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM; break;
                     }
                     AppCompatDelegate.setDefaultNightMode(selectedTheme);
                     ThemeManager.saveTheme(this, selectedTheme);
                     dialog.dismiss();
-                });
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
+                }).show();
     }
 
     private void initialize() {
         setSupportActionBar(binding.toolbar);
-
         binding.swipeRefreshLayout.setOnRefreshListener(this::updateUI);
 
         binding.sendButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, IdpayActivity.class));
         });
+        
         binding.receiveButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, ReceiveQrActivity.class));
         });
+        
         binding.seeAllButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, HistoryActivity.class));
@@ -178,60 +164,62 @@ public class TransferActivity extends AppCompatActivity {
         networkListener = new RequestNetwork.RequestListener() {
             @Override
             public void onResponse(String tag, String response, HashMap<String, Object> responseHeaders) {
-                if (binding.swipeRefreshLayout.isRefreshing()) {
-                    binding.swipeRefreshLayout.setRefreshing(false);
-                }
-                if (BALANCE_TAG.equals(tag)) {
-                    handleBalanceResponse(response);
-                } else if (HEDERA_HISTORY_TAG.equals(tag)) {
-                    handleHistoryApiResponse(response);
-                } else if (BLOG_TAG.equals(tag)) {
-                    ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-                    if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
-                    ArrayList<Post> posts = BlogApiParser.parse(response);
-                    if (blogAdapter != null) blogAdapter.updateData(posts);
-                } else if (EXCHANGE_RATE_TAG.equals(tag)) {
-                    handleExchangeRateResponse(response);
+                if (binding.swipeRefreshLayout.isRefreshing()) binding.swipeRefreshLayout.setRefreshing(false);
+                
+                switch (tag) {
+                    case BALANCE_TAG: handleBalanceResponse(response); break;
+                    case HEDERA_HISTORY_TAG: handleHistoryApiResponse(response); break;
+                    case BLOG_TAG:
+                        ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
+                        if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
+                        ArrayList<Post> posts = BlogApiParser.parse(response);
+                        if (blogAdapter != null) blogAdapter.updateData(posts);
+                        break;
+                    case EXCHANGE_RATE_TAG: handleExchangeRateResponse(response); break;
                 }
             }
 
             @Override
             public void onErrorResponse(String tag, String message) {
-                if (binding.swipeRefreshLayout.isRefreshing()) {
-                    binding.swipeRefreshLayout.setRefreshing(false);
-                }
-                if (BALANCE_TAG.equals(tag)) {
-                    showErrorSnackbar("Failed to update balance. Check your connection.", () -> fetchBalance(WalletStorage.getAccountId(TransferActivity.this)));
-                } else if (HEDERA_HISTORY_TAG.equals(tag)) {
-                    Log.e("TransferHistory", "Failed to fetch history from Hedera: " + message);
-                    showErrorSnackbar("Failed to load transaction history.", () -> loadRecentHistory());
-                } else if (BLOG_TAG.equals(tag)) {
-                    ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-                    if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
-                    showErrorSnackbar("Failed to load blog posts.", () -> loadBlogPosts());
-                } else if (EXCHANGE_RATE_TAG.equals(tag)) {
-                    Log.e("TransferActivity", "Failed to fetch exchange rate: " + message);
-                    binding.exchangeRateTextView.setText("Failed to load rate");
+                if (binding.swipeRefreshLayout.isRefreshing()) binding.swipeRefreshLayout.setRefreshing(false);
+                
+                switch (tag) {
+                    case BALANCE_TAG:
+                        showErrorSnackbar("Failed to update balance.", () -> fetchBalance(WalletStorage.getAccountId(TransferActivity.this)));
+                        break;
+                    case HEDERA_HISTORY_TAG:
+                        Timber.e("Failed to fetch history: %s", message);
+                        showErrorSnackbar("Failed to load history.", this::loadRecentHistory);
+                        break;
+                    case BLOG_TAG:
+                        ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
+                        if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
+                        showErrorSnackbar("Failed to load blog.", this::loadBlogPosts);
+                        break;
+                    case EXCHANGE_RATE_TAG:
+                        Timber.e("Failed to fetch exchange rate: %s", message);
+                        binding.exchangeRateTextView.setText("Rate N/A");
+                        break;
                 }
             }
+
+            private void loadRecentHistory() { TransferActivity.this.loadRecentHistory(); }
+            private void loadBlogPosts() { TransferActivity.this.loadBlogPosts(); }
         };
     }
 
     private void showErrorSnackbar(String message, Runnable retryAction) {
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG)
-                .setAction("Retry", v -> retryAction.run())
-                .show();
+                .setAction("Retry", v -> retryAction.run()).show();
     }
 
     private void updateUI() {
         String accountId = WalletStorage.getAccountId(this);
         if (accountId == null || accountId.isEmpty()) {
             binding.accountID.setText("N/A");
-            binding.balanceTextView.setText("0 ");
+            binding.balanceTextView.setText("0 HBAR");
             updateHistoryView(new ArrayList<>());
-            if (binding.swipeRefreshLayout.isRefreshing()) {
-                binding.swipeRefreshLayout.setRefreshing(false);
-            }
+            if (binding.swipeRefreshLayout.isRefreshing()) binding.swipeRefreshLayout.setRefreshing(false);
         } else {
             binding.accountID.setText(accountId);
             binding.balanceTextView.setText(WalletStorage.getFormattedBalance(this));
@@ -244,8 +232,8 @@ public class TransferActivity extends AppCompatActivity {
 
     private void updateBalanceCard() {
         double balance = WalletStorage.getRawBalance(this);
-        if (balance == 0) {
-            binding.balanceCard.setCardBackgroundColor(Color.RED);
+        if (balance <= 0) {
+            binding.balanceCard.setCardBackgroundColor(Color.parseColor("#FFEBEE")); // Light red
             binding.sendButton.setEnabled(false);
         } else {
             TypedValue typedValue = new TypedValue();
@@ -269,7 +257,7 @@ public class TransferActivity extends AppCompatActivity {
             updateHistoryView(new ArrayList<>());
             return;
         }
-        String url = HEDERA_API_BASE_URL + HISTORY_API_ENDPOINT + "?account.id=" + accountId + "&limit=25";
+        String url = HEDERA_API_BASE_URL + HISTORY_API_ENDPOINT + "?account.id=" + accountId + "&limit=5";
         networkReq.startRequestNetwork(RequestNetworkController.GET, url, HEDERA_HISTORY_TAG, networkListener);
     }
 
@@ -279,12 +267,12 @@ public class TransferActivity extends AppCompatActivity {
         }
         RecyclerView blogRecyclerView = findViewById(R.id.recyclerview1);
         ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-        if (blogRecyclerView.getAdapter() == null) {
+        if (blogRecyclerView != null && blogRecyclerView.getAdapter() == null) {
             blogRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
             blogAdapter = new BlogAdapter(new ArrayList<>());
             blogRecyclerView.setAdapter(blogAdapter);
         }
-        blogProgressBar.setVisibility(View.VISIBLE);
+        if (blogProgressBar != null) blogProgressBar.setVisibility(View.VISIBLE);
         networkReq.startRequestNetwork(RequestNetworkController.GET, BLOG_API_URL, BLOG_TAG, networkListener);
     }
 
@@ -292,17 +280,17 @@ public class TransferActivity extends AppCompatActivity {
         try {
             Map<String, Object> map = new Gson().fromJson(response, new TypeToken<HashMap<String, Object>>() {}.getType());
             if (map != null && map.containsKey("balance") && map.containsKey("hbars")) {
-                WalletStorage.saveRawBalance(this, (Double) map.get("balance"));
-                WalletStorage.saveFormattedBalance(this, (String) map.get("hbars"));
-                binding.balanceTextView.setText((String) map.get("hbars"));
+                Object balanceObj = map.get("balance");
+                double balance = (balanceObj instanceof Double) ? (Double) balanceObj : Double.parseDouble(String.valueOf(balanceObj));
+                WalletStorage.saveRawBalance(this, balance);
+                WalletStorage.saveFormattedBalance(this, String.valueOf(map.get("hbars")));
+                binding.balanceTextView.setText(String.valueOf(map.get("hbars")));
                 updateBalanceCard();
-                updateBalanceInUSD(); // Call this to update the USD balance
+                updateBalanceInUSD();
                 loadBlogPosts();
-            } else {
-                Log.e("BalanceAPI", "API Error: Response does not contain expected keys.");
             }
         } catch (Exception e) {
-            Log.e("BalanceAPI_CRASH", "Could not parse balance response", e);
+            Timber.e(e, "Could not parse balance response");
         }
     }
 
@@ -313,13 +301,13 @@ public class TransferActivity extends AppCompatActivity {
                 int cents = rateResponse.current_rate.cent_equivalent;
                 int hbars = rateResponse.current_rate.hbar_equivalent;
                 if (hbars > 0) {
-                    exchangeRate = (double) cents / hbars / 100; // Convert cents to dollars
+                    exchangeRate = (double) cents / hbars / 100;
                     updateBalanceInUSD();
                 }
             }
         } catch (JsonSyntaxException e) {
-            Log.e("ExchangeRateAPI_CRASH", "Could not parse exchange rate response", e);
-            binding.exchangeRateTextView.setText("Invalid rate data");
+            Timber.e(e, "Could not parse exchange rate response");
+            binding.exchangeRateTextView.setText("Rate Error");
         }
     }
 
@@ -336,7 +324,7 @@ public class TransferActivity extends AppCompatActivity {
         HistoryApiParser.HistoryResponse historyResponse = HistoryApiParser.parse(response, WalletStorage.getAccountId(this));
         ArrayList<Transaction> recentTransactions = new ArrayList<>();
         if (historyResponse != null && historyResponse.transactions != null) {
-            recentTransactions.addAll(historyResponse.transactions.subList(0, Math.min(historyResponse.transactions.size(), 3)));
+            recentTransactions.addAll(historyResponse.transactions.subList(0, Math.min(historyResponse.transactions.size(), 5)));
         }
         updateHistoryView(recentTransactions);
     }
