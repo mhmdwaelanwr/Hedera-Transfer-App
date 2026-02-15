@@ -18,6 +18,8 @@ import java.util.Objects;
 
 public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.ViewHolder> {
 
+    private final Gson gson = new Gson();
+
     public HistoryAdapter() {
         super(DIFF_CALLBACK);
     }
@@ -30,7 +32,12 @@ public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.View
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            return new Gson().toJson(oldItem).equals(new Gson().toJson(newItem));
+            return Objects.equals(oldItem.type, newItem.type) &&
+                   Objects.equals(oldItem.amount, newItem.amount) &&
+                   Objects.equals(oldItem.party, newItem.party) &&
+                   Objects.equals(oldItem.date, newItem.date) &&
+                   Objects.equals(oldItem.status, newItem.status) &&
+                   Objects.equals(oldItem.fee, newItem.fee);
         }
     };
 
@@ -43,7 +50,7 @@ public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.View
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position), gson);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
@@ -59,13 +66,14 @@ public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.View
             fee = itemView.findViewById(R.id.fee);
         }
 
-        void bind(Transaction transaction) {
+        void bind(Transaction transaction, Gson gson) {
             if (transaction == null) return;
-            transactionType.setText(transaction.type);
-            date.setText(transaction.date);
-            amount.setText(transaction.amount);
-            party.setText(transaction.party);
-            status.setText(transaction.status);
+            
+            transactionType.setText(transaction.type != null ? transaction.type : "");
+            date.setText(transaction.date != null ? transaction.date : "");
+            amount.setText(transaction.amount != null ? transaction.amount : "0 HBAR");
+            party.setText(transaction.party != null ? transaction.party : "");
+            status.setText(transaction.status != null ? transaction.status : "");
 
             if (transaction.fee != null && !transaction.fee.isEmpty()) {
                 fee.setText(transaction.fee);
@@ -74,11 +82,15 @@ public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.View
                 fee.setVisibility(View.GONE);
             }
 
+            // UI Enhancement: Conditional Colors
+            int contextColor = ContextCompat.getColor(itemView.getContext(), android.R.color.black);
             if ("Sent".equalsIgnoreCase(transaction.type)) {
-                amount.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorSent));
-            } else {
-                amount.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorReceived));
+                contextColor = ContextCompat.getColor(itemView.getContext(), R.color.colorSent);
+            } else if ("Received".equalsIgnoreCase(transaction.type)) {
+                contextColor = ContextCompat.getColor(itemView.getContext(), R.color.colorReceived);
             }
+            amount.setTextColor(contextColor);
+
             if ("SUCCESS".equalsIgnoreCase(transaction.status)) {
                 status.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorReceived));
             } else {
@@ -87,7 +99,7 @@ public class HistoryAdapter extends ListAdapter<Transaction, HistoryAdapter.View
 
             itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(itemView.getContext(), TransactionDetailsActivity.class);
-                intent.putExtra("transaction", new Gson().toJson(transaction));
+                intent.putExtra("transaction", gson.toJson(transaction));
                 itemView.getContext().startActivity(intent);
             });
         }
