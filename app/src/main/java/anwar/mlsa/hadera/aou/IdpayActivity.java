@@ -37,7 +37,6 @@ import com.hedera.hashgraph.sdk.TransferTransaction;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
 import anwar.mlsa.hadera.aou.domain.util.Result;
 import anwar.mlsa.hadera.aou.hardware.HardwareWalletService;
@@ -78,6 +77,32 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
             hardwareWalletService = null;
         }
     };
+
+    private final ActivityResultLauncher<Intent> qrScannerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    String scannedId = result.getData().getStringExtra("SCANNED_ID");
+                    if (scannedId != null) {
+                        recipientIdEditText.setText(scannedId);
+                        viewModel.verifyAccountId(scannedId);
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> addressBookLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    String selectedId = result.getData().getStringExtra("SELECTED_ACCOUNT_ID");
+                    if (selectedId != null) {
+                        recipientIdEditText.setText(selectedId);
+                        viewModel.verifyAccountId(selectedId);
+                    }
+                }
+            }
+    );
 
     private void observeHardwareWalletStatus() {
         if (hardwareWalletService == null) return;
@@ -137,9 +162,9 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
 
     private void handleHardwareWalletTransaction(WalletStorage.Account account) {
         setLoadingState(true);
-        pendingHwPublicKeyHex = account.getAccountId(); // Fixed: Using getter
+        pendingHwPublicKeyHex = account.getAccountId();
         pendingHwTx = viewModel.createUnsignedTransaction(
-                account.getAccountId(), // Fixed: Using getter
+                account.getAccountId(),
                 safeGetText(recipientIdEditText),
                 safeGetText(amountEditText),
                 safeGetText(memoEditText).trim()
@@ -147,7 +172,6 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
 
         if (pendingHwTx != null) {
             Toast.makeText(this, "Please approve on your Ledger.", Toast.LENGTH_LONG).show();
-            // Fixed: Using toBytes() instead of makeBytes()
             hardwareWalletService.signTransaction(pendingHwTx.toBytes(), this);
         } else {
             setLoadingState(false);
@@ -157,7 +181,6 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
 
     @Override
     public void onSignatureReceived(byte[] signature) {
-        Timber.d("Signature received from Ledger.");
         if (pendingHwTx != null && pendingHwPublicKeyHex != null) {
             try {
                 PublicKey publicKey = PublicKey.fromString(pendingHwPublicKeyHex);
@@ -221,12 +244,32 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
 
     private void setupListeners() {
         sendButton.setOnClickListener(v -> showConfirmationDialog());
+
+        recipientLayout.setStartIconOnClickListener(v -> {
+            Intent intent = new Intent(this, AddressBookActivity.class);
+            addressBookLauncher.launch(intent);
+        });
+
+        recipientLayout.setEndIconOnClickListener(v -> {
+            Intent intent = new Intent(this, ScannerqrActivity.class);
+            qrScannerLauncher.launch(intent);
+        });
         
         recipientIdEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
                 viewModel.onRecipientInputChanged(s.toString().trim(), safeGetText(amountEditText).trim(), currentBalance);
+                verifiedTextView.setVisibility(View.GONE);
+                recipientLayout.setVisibility(View.VISIBLE);
+            }
+        });
+
+        amountEditText.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                viewModel.onAmountInputChanged(s.toString().trim(), currentBalance);
             }
         });
     }
@@ -234,6 +277,25 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
     private void observeViewModel() {
         viewModel.isLoading().observe(this, this::setLoadingState);
         viewModel.isSendButtonEnabled().observe(this, enabled -> sendButton.setEnabled(enabled));
+        
+        viewModel.getRecipientError().observe(this, error -> {
+            recipientLayout.setError(error);
+            if (error != null) {
+                verifiedTextView.setVisibility(View.GONE);
+                recipientLayout.setVisibility(View.VISIBLE);
+            }
+        });
+
+        viewModel.getVerifiedRecipient().observe(this, accountId -> {
+            if (accountId != null && !accountId.isEmpty()) {
+                verifiedTextView.setVisibility(View.VISIBLE);
+                verifiedTextView.setText("To: " + accountId);
+                recipientLayout.setVisibility(View.GONE);
+            }
+        });
+
+        viewModel.getAmountError().observe(this, amountLayout::setError);
+
         viewModel.getTransactionResult().observe(this, result -> {
             if (result instanceof Result.Success) {
                 performHapticFeedback();
@@ -242,6 +304,24 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
                 Toast.makeText(this, "Error: " + ((Result.Error) result).message, Toast.LENGTH_LONG).show();
             }
         });
+
+        viewModel.getExchangeRate().observe(this, rate -> {
+            if (rate != null && !rate.equalsIgnoreCase("Error")) {
+                try {
+                    exchangeRate = Double.parseDouble(rate);
+                    updateBalanceInUSD();
+                } catch (Exception e) {
+                    exchangeRateTextView.setText("Rate N/A");
+                }
+            }
+        });
+    }
+
+    private void updateBalanceInUSD() {
+        if (exchangeRate > 0) {
+            double balanceInUSD = currentBalance * exchangeRate;
+            exchangeRateTextView.setText(String.format(Locale.US, "$%,.2f USD", balanceInUSD));
+        }
     }
 
     private void loadInitialData() {
@@ -258,7 +338,7 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
     private void showConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Confirm Transfer")
-                .setMessage("Are you sure you want to send this transaction?")
+                .setMessage("Are you sure you want to send " + safeGetText(amountEditText) + " HBAR?")
                 .setPositiveButton("Send", (dialog, which) -> biometricPrompt.authenticate(promptInfo))
                 .setNegativeButton("Cancel", null).show();
     }

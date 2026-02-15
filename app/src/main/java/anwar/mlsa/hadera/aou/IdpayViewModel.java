@@ -70,19 +70,16 @@ public class IdpayViewModel extends AndroidViewModel {
                 Request.Method.GET, url, null,
                 response -> {
                     try {
-                        double cents = response.getJSONObject("current_rate").getInt("cent_equivalent");
-                        double hbars = response.getJSONObject("current_rate").getInt("hbar_equivalent");
+                        JSONObject currentRate = response.getJSONObject("current_rate");
+                        double cents = currentRate.getInt("cent_equivalent");
+                        double hbars = currentRate.getInt("hbar_equivalent");
                         double priceInUsd = (cents / hbars) / 100.0;
                         exchangeRate.postValue(String.valueOf(priceInUsd));
                     } catch (Exception e) {
-                        Log.e("IdpayViewModel", "Error parsing Hedera Mirror Node response", e);
                         exchangeRate.postValue("Error");
                     }
                 },
-                error -> {
-                    Log.e("IdpayViewModel", "Error fetching Hedera Mirror Node price", error);
-                    exchangeRate.postValue("Error");
-                }
+                error -> exchangeRate.postValue("Error")
         );
         requestQueue.add(jsonObjectRequest);
     }
@@ -103,36 +100,38 @@ public class IdpayViewModel extends AndroidViewModel {
     private void validateAmount(String amountStr, double currentBalance) {
         boolean isAmountValid = false;
         try {
-            double amount = Double.parseDouble(amountStr);
-            if (amount > 0 && amount <= currentBalance) {
-                isAmountValid = true;
-                amountError.postValue(null);
-            } else if (amount > currentBalance) {
-                amountError.postValue("Amount exceeds balance.");
+            if (amountStr != null && !amountStr.isEmpty()) {
+                double amount = Double.parseDouble(amountStr);
+                if (amount > 0 && amount <= currentBalance) {
+                    isAmountValid = true;
+                    amountError.postValue(null);
+                } else if (amount > currentBalance) {
+                    amountError.postValue("Amount exceeds balance.");
+                } else {
+                    amountError.postValue("Amount must be positive.");
+                }
             } else {
-                amountError.postValue("Amount must be positive.");
+                amountError.postValue(null);
             }
         } catch (NumberFormatException e) {
-            if (amountStr != null && !amountStr.isEmpty()) {
-                amountError.postValue("Invalid amount format.");
-            } else {
-                amountError.postValue(null);
-            }
+            amountError.postValue("Invalid amount format.");
         }
         isSendButtonEnabled.postValue(isRecipientCurrentlyValid && isAmountValid);
     }
 
     private void validateInputs(String recipientId, String amountStr, double currentBalance) {
-        isRecipientCurrentlyValid = recipientId != null && recipientId.matches("^0\\.0\\.[0-9]{7}$");
+        // Updated regex to support any number of digits in Account ID
+        isRecipientCurrentlyValid = recipientId != null && recipientId.matches("^0\\.0\\.[0-9]+$");
 
         if (recipientId == null || recipientId.isEmpty()) {
             recipientError.postValue(null);
         } else if (!isRecipientCurrentlyValid) {
-            recipientError.postValue("Account ID must be in the format 0.0.XXXXXXX");
+            recipientError.postValue("Account ID format: 0.0.xxxx");
         } else {
             verifyAccountUseCase.execute(recipientId, result -> {
                 if (result instanceof Result.Success) {
                     if (((Result.Success<Boolean>) result).data) {
+                        isRecipientCurrentlyValid = true;
                         recipientHelperText.postValue("Account ID verified");
                         recipientError.postValue(null);
                     } else {
@@ -145,7 +144,7 @@ public class IdpayViewModel extends AndroidViewModel {
                 }
                 validateAmount(amountStr, currentBalance);
             });
-            return; // Exit here, validateAmount will be called in the callback
+            return;
         }
         validateAmount(amountStr, currentBalance);
     }
@@ -194,7 +193,7 @@ public class IdpayViewModel extends AndroidViewModel {
                     .addHbarTransfer(AccountId.fromString(senderAccountId), Hbar.from(amount).negated())
                     .addHbarTransfer(AccountId.fromString(recipientId), Hbar.from(amount))
                     .setTransactionMemo(memo);
-        } catch (NumberFormatException e) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -206,7 +205,7 @@ public class IdpayViewModel extends AndroidViewModel {
         transaction.amount = "-" + amount + " ℏ";
         transaction.party = receiverId;
         transaction.date = currentDate;
-        transaction.status = "Completed";
+        transaction.status = "SUCCESS";
         transaction.memo = memo;
         WalletStorage.saveTransaction(getApplication(), transaction);
     }
