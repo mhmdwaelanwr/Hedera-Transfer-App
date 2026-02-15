@@ -66,20 +66,20 @@ public class WalletStorage {
     }
 
     public static boolean addAccount(Context context, String accountId, String privateKey) {
-        return addAccount(context, accountId, privateKey, false);
+        return addAccount(context, accountId, privateKey, "", false);
     }
 
-    public static boolean addHardwareAccount(Context context, String accountId) {
-        return addAccount(context, accountId, "", true);
+    public static boolean addHardwareAccount(Context context, String accountId, String publicKey) {
+        return addAccount(context, accountId, "", publicKey, true);
     }
 
-    private static boolean addAccount(Context context, String accountId, String privateKey, boolean isHardware) {
+    private static boolean addAccount(Context context, String accountId, String privateKey, String publicKey, boolean isHardware) {
         List<Account> accounts = getAccounts(context);
         if (!canAddAccount(context)) return false;
         for (Account account : accounts) {
             if (account.getAccountId().equals(accountId)) return false;
         }
-        accounts.add(new Account(accountId, privateKey, isHardware));
+        accounts.add(new Account(accountId, privateKey, publicKey, isHardware));
         saveAccounts(context, accounts);
         if (accounts.size() == 1) setCurrentAccountIndex(context, 0);
         return true;
@@ -224,16 +224,19 @@ public class WalletStorage {
     public static class Account {
         private final String accountId;
         private final String privateKey;
+        private final String publicKey;
         public final boolean isHardware;
 
-        public Account(String accountId, String privateKey, boolean isHardware) {
+        public Account(String accountId, String privateKey, String publicKey, boolean isHardware) {
             this.accountId = accountId;
             this.privateKey = privateKey;
+            this.publicKey = publicKey;
             this.isHardware = isHardware;
         }
 
         public String getAccountId() { return accountId; }
         public String getPrivateKey() { return privateKey; }
+        public String getPublicKey() { return publicKey; }
     }
 
     public static class Contact implements Serializable {

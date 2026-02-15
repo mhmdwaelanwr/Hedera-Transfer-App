@@ -31,18 +31,29 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Enhanced HardwareWalletService implementing the official Hedera Ledger App protocol.
+ * Based on: https://github.com/hashgraph/ledger-app-hedera
+ */
 public class HardwareWalletService extends Service implements SerialInputOutputManager.Listener {
 
     private static final String TAG = "HardwareWalletService";
     private static final String ACTION_USB_PERMISSION = "anwar.mlsa.hadera.aou.USB_PERMISSION";
-    private static final int LEDGER_VID = 0x2C97; // Real Ledger Vendor ID
-    private static final int TIMEOUT_MS = 30000;
+    private static final int LEDGER_VID = 0x2C97; 
+    private static final int TIMEOUT_MS = 60000; // Increased timeout for on-device confirmation
 
-    // APDU constants for Hedera Ledger App
+    // Official APDU constants
     private static final byte CLA = (byte) 0xE0;
     private static final byte INS_GET_PUBKEY = 0x02;
     private static final byte INS_SIGN_TX = 0x04;
+    
+    private static final byte P1_FIRST = 0x00;
+    private static final byte P1_MORE = (byte) 0x80;
+    private static final byte P2_LAST = 0x00;
+    private static final byte P2_MORE = 0x01;
+
     private static final int SW_OK = 0x9000;
+    private static final int CHUNK_SIZE = 150; // Ledger's typical buffer limit for chunks
 
     public enum ConnectionStatus {DISCONNECTED, SEARCHING, CONNECTED, ERROR}
     private enum PendingOperation {NONE, GET_ACCOUNT, SIGN_TRANSACTION}
@@ -56,6 +67,10 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     private AccountInfoListener accountInfoListener;
     private PendingOperation currentOperation = PendingOperation.NONE;
     private int activeAccountIndex = -1;
+    
+    // Chunking state
+    private byte[] dataToSign;
+    private int currentChunkOffset = 0;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable operationTimeoutRunnable;
@@ -121,8 +136,7 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         }
         for (UsbSerialDriver driver : availableDrivers) {
             UsbDevice device = driver.getDevice();
-            // Checking both Ledger VID and common USB-Serial VIDs if testing with bridge
-            if (device.getVendorId() == LEDGER_VID || device.getVendorId() == 11415) {
+            if (device.getVendorId() == LEDGER_VID || device.getVendorId() == 0x2581 || device.getVendorId() == 0x2B73) {
                 if (usbManager.hasPermission(device)) {
                     connectToDevice(device);
                 } else {
@@ -182,13 +196,41 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         }
         this.signingListener = listener;
         this.currentOperation = PendingOperation.SIGN_TRANSACTION;
+        this.dataToSign = unsignedTransaction;
+        this.currentChunkOffset = 0;
+
+        sendNextSignChunk();
+    }
+
+    private void sendNextSignChunk() {
         try {
-            // Hedera transactions can be large, we might need chunking for complex ones
-            byte[] apdu = createSignTransactionApdu(unsignedTransaction);
+            byte[] path = createBip32Path(activeAccountIndex != -1 ? activeAccountIndex : 0);
+            boolean isFirst = (currentChunkOffset == 0);
+            int remaining = dataToSign.length - currentChunkOffset;
+            int currentDataLen = Math.min(remaining, CHUNK_SIZE);
+            boolean isLast = (currentChunkOffset + currentDataLen >= dataToSign.length);
+
+            byte p1 = isFirst ? P1_FIRST : P1_MORE;
+            byte p2 = isLast ? P2_LAST : P2_MORE;
+
+            int payloadLen = (isFirst ? path.length : 0) + currentDataLen;
+            byte[] header = {CLA, INS_SIGN_TX, p1, p2, (byte) payloadLen};
+            byte[] apdu = new byte[header.length + payloadLen];
+            
+            System.arraycopy(header, 0, apdu, 0, header.length);
+            int offset = header.length;
+            if (isFirst) {
+                System.arraycopy(path, 0, apdu, offset, path.length);
+                offset += path.length;
+            }
+            System.arraycopy(dataToSign, currentChunkOffset, apdu, offset, currentDataLen);
+            
+            currentChunkOffset += currentDataLen;
+            
             usbSerialPort.write(apdu, TIMEOUT_MS);
             startOperationTimeout();
         } catch (IOException e) {
-            listener.onSignatureError(e);
+            handleError(e);
         }
     }
 
@@ -201,7 +243,12 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         this.currentOperation = PendingOperation.GET_ACCOUNT;
         this.activeAccountIndex = accountIndex;
         try {
-            byte[] apdu = createGetPublicKeyApdu(accountIndex);
+            byte[] path = createBip32Path(accountIndex);
+            byte[] header = {CLA, INS_GET_PUBKEY, 0x00, 0x01, (byte) path.length}; // P2=0x01 shows on screen
+            byte[] apdu = new byte[header.length + path.length];
+            System.arraycopy(header, 0, apdu, 0, header.length);
+            System.arraycopy(path, 0, apdu, header.length, path.length);
+            
             usbSerialPort.write(apdu, TIMEOUT_MS);
             startOperationTimeout();
         } catch (IOException e) {
@@ -210,34 +257,14 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
     }
 
     private byte[] createBip32Path(int accountIndex) {
-        // Path: 44'/3030'/accountIndex'/0/0
+        // Hedera Path: 44'/3030'/accountIndex'/0'/0'
         ByteBuffer bb = ByteBuffer.allocate(20);
         bb.putInt(0x8000002C); // 44'
         bb.putInt(0x80000BD6); // 3030'
         bb.putInt(0x80000000 | accountIndex); // accountIndex'
-        bb.putInt(0); // 0
-        bb.putInt(0); // 0
+        bb.putInt(0x80000000); // 0'
+        bb.putInt(0x80000000); // 0'
         return bb.array();
-    }
-
-    private byte[] createGetPublicKeyApdu(int accountIndex) {
-        byte[] path = createBip32Path(accountIndex);
-        byte[] header = {CLA, INS_GET_PUBKEY, 0x00, 0x01, (byte) path.length}; // P2=0x01 to display on screen
-        byte[] apdu = new byte[header.length + path.length];
-        System.arraycopy(header, 0, apdu, 0, header.length);
-        System.arraycopy(path, 0, apdu, header.length, path.length);
-        return apdu;
-    }
-
-    private byte[] createSignTransactionApdu(byte[] transaction) {
-        // Hedera Ledger app expects: Path (20 bytes) + Transaction Body
-        byte[] path = createBip32Path(activeAccountIndex != -1 ? activeAccountIndex : 0);
-        byte[] header = {CLA, INS_SIGN_TX, 0x00, 0x00, (byte) (path.length + transaction.length)};
-        byte[] apdu = new byte[header.length + path.length + transaction.length];
-        System.arraycopy(header, 0, apdu, 0, header.length);
-        System.arraycopy(path, 0, apdu, header.length, path.length);
-        System.arraycopy(transaction, 0, apdu, header.length + path.length, transaction.length);
-        return apdu;
     }
 
     @Override
@@ -245,7 +272,6 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         cancelOperationTimeout();
         if (data.length < 2) return;
 
-        // Last 2 bytes are Status Word (SW)
         int sw = ((data[data.length - 2] & 0xFF) << 8) | (data[data.length - 1] & 0xFF);
         byte[] responseData = Arrays.copyOfRange(data, 0, data.length - 2);
 
@@ -258,23 +284,29 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
             try {
                 switch (currentOperation) {
                     case SIGN_TRANSACTION:
-                        if (signingListener != null) signingListener.onSignatureReceived(responseData);
+                        if (currentChunkOffset < dataToSign.length) {
+                            sendNextSignChunk();
+                        } else if (signingListener != null) {
+                            signingListener.onSignatureReceived(responseData);
+                            clearListeners();
+                        }
                         break;
                     case GET_ACCOUNT:
                         if (accountInfoListener != null) {
                             accountInfoListener.onAccountInfoReceived(activeAccountIndex, responseData);
                         }
+                        clearListeners();
                         break;
                 }
-            } finally {
-                clearListeners();
+            } catch (Exception e) {
+                handleError(e);
             }
         });
     }
 
     private void startOperationTimeout() {
         cancelOperationTimeout();
-        operationTimeoutRunnable = () -> handleError(new TimeoutException("Ledger operation timed out"));
+        operationTimeoutRunnable = () -> handleError(new TimeoutException("Ledger operation timed out. Please check device."));
         mainHandler.postDelayed(operationTimeoutRunnable, TIMEOUT_MS);
     }
 
@@ -289,6 +321,8 @@ public class HardwareWalletService extends Service implements SerialInputOutputM
         signingListener = null;
         accountInfoListener = null;
         currentOperation = PendingOperation.NONE;
+        dataToSign = null;
+        currentChunkOffset = 0;
     }
 
     @Override

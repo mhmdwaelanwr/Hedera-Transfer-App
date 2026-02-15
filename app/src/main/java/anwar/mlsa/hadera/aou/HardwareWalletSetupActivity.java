@@ -185,12 +185,12 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
         Timber.d("Account %d public key found: %s", accountIndex, publicKeyHex);
         
         // In a real scenario, you would query Hedera Mirror Node to find the AccountID associated with this public key.
-        // For now, we will use a placeholder or the Hex representation for display.
-        String placeholderAccountId = "0.0.HIDDEN-" + accountIndex; 
+        // For now, we will use the index to differentiate accounts for testing.
+        String placeholderAccountId = "0.0.HW-" + accountIndex; 
 
         runOnUiThread(() -> {
             accountsFound++;
-            adapter.addAccount(publicKeyHex); // Displaying public key hex for now
+            adapter.addAccount(placeholderAccountId, publicKeyHex); 
             accountsScanned++;
             scanNextAccount();
         });
@@ -205,8 +205,8 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
         });
     }
 
-    private void importAccount(String accountId) {
-        if (WalletStorage.addHardwareAccount(this, accountId)) {
+    private void importAccount(String accountId, String publicKey) {
+        if (WalletStorage.addHardwareAccount(this, accountId, publicKey)) {
             int newAccountIndex = WalletStorage.getAccounts(this).size() - 1;
             WalletStorage.setCurrentAccountIndex(this, newAccountIndex);
             Toast.makeText(this, "Account imported successfully!", Toast.LENGTH_SHORT).show();
@@ -228,17 +228,24 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
         return sb.toString();
     }
 
+    // Data class for adapter
+    private static class HwAccountData {
+        String accountId;
+        String publicKey;
+        HwAccountData(String id, String key) { this.accountId = id; this.publicKey = key; }
+    }
+
     // Adapter for the RecyclerView
     private static class HwAccountAdapter extends RecyclerView.Adapter<HwAccountAdapter.ViewHolder> {
-        private final List<String> accountIds;
+        private final List<HwAccountData> accounts;
         private final OnItemClickListener listener;
 
         interface OnItemClickListener {
-            void onItemClick(String accountId);
+            void onItemClick(String accountId, String publicKey);
         }
 
-        HwAccountAdapter(List<String> accountIds, OnItemClickListener listener) {
-            this.accountIds = accountIds;
+        HwAccountAdapter(List<HwAccountData> accounts, OnItemClickListener listener) {
+            this.accounts = accounts;
             this.listener = listener;
         }
 
@@ -251,21 +258,21 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.bind(accountIds.get(position), listener);
+            holder.bind(accounts.get(position), listener);
         }
 
         @Override
         public int getItemCount() {
-            return accountIds.size();
+            return accounts.size();
         }
 
-        void addAccount(String accountId) {
-            accountIds.add(accountId);
+        void addAccount(String accountId, String publicKey) {
+            accounts.add(new HwAccountData(accountId, publicKey));
             notifyDataSetChanged();
         }
 
         void clear() {
-            accountIds.clear();
+            accounts.clear();
             notifyDataSetChanged();
         }
 
@@ -279,12 +286,10 @@ public class HardwareWalletSetupActivity extends AppCompatActivity implements Ha
                 importButton = view.findViewById(R.id.import_hw_account_button);
             }
 
-            void bind(final String accountId, final OnItemClickListener listener) {
-                // Shorten public key for display
-                String displayId = accountId.length() > 20 ? accountId.substring(0, 10) + "..." + accountId.substring(accountId.length() - 10) : accountId;
-                accountIdTextView.setText(displayId);
-                itemView.setOnClickListener(v -> listener.onItemClick(accountId));
-                importButton.setOnClickListener(v -> listener.onItemClick(accountId));
+            void bind(final HwAccountData data, final OnItemClickListener listener) {
+                accountIdTextView.setText(data.accountId);
+                itemView.setOnClickListener(v -> listener.onItemClick(data.accountId, data.publicKey));
+                importButton.setOnClickListener(v -> listener.onItemClick(data.accountId, data.publicKey));
             }
         }
     }

@@ -62,7 +62,7 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
     private boolean awaitingHwConnectionForTx = false;
     
     private TransferTransaction pendingHwTx;
-    private String pendingHwPublicKeyHex;
+    private String pendingHwPublicKeyHex; // This should be the actual Public Key Hex, not Account ID
 
     private final ServiceConnection hardwareWalletConnection = new ServiceConnection() {
         @Override
@@ -109,8 +109,10 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
         hardwareWalletService.connectionStatus.observe(this, status -> {
             if (status == HardwareWalletService.ConnectionStatus.CONNECTED && awaitingHwConnectionForTx) {
                 awaitingHwConnectionForTx = false;
-                Toast.makeText(this, "Ledger connected. Ready to sign.", Toast.LENGTH_SHORT).show();
-                setLoadingState(false);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Ledger connected. Ready to sign.", Toast.LENGTH_SHORT).show();
+                    initiateTransaction(); // Retry transaction now that we are connected
+                });
             }
         });
     }
@@ -152,7 +154,7 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
             } else {
                 awaitingHwConnectionForTx = true;
                 setLoadingState(true);
-                Toast.makeText(this, "Connect your Ledger device.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Please connect and open Hedera App on Ledger.", Toast.LENGTH_LONG).show();
                 hardwareWalletService.findAndConnectToDevice();
             }
         } else {
@@ -162,27 +164,51 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
 
     private void handleHardwareWalletTransaction(WalletStorage.Account account) {
         setLoadingState(true);
-        pendingHwPublicKeyHex = account.getAccountId();
-        pendingHwTx = viewModel.createUnsignedTransaction(
-                account.getAccountId(),
-                safeGetText(recipientIdEditText),
-                safeGetText(amountEditText),
-                safeGetText(memoEditText).trim()
-        );
+        // Important: For Ledger, we need the actual Public Key to add the signature later.
+        // If we only have Account ID, we need to ensure the Public Key was stored during setup.
+        pendingHwPublicKeyHex = account.getPublicKey(); // Assume account.getPublicKey() exists or is stored
+        
+        // Use a background thread for SDK operations like freezeWith
+        new Thread(() -> {
+            try {
+                Client client = Client.forTestnet();
+                pendingHwTx = viewModel.createUnsignedTransaction(
+                        account.getAccountId(),
+                        safeGetText(recipientIdEditText),
+                        safeGetText(amountEditText),
+                        safeGetText(memoEditText).trim()
+                );
 
-        if (pendingHwTx != null) {
-            Toast.makeText(this, "Please approve on your Ledger.", Toast.LENGTH_LONG).show();
-            hardwareWalletService.signTransaction(pendingHwTx.toBytes(), this);
-        } else {
-            setLoadingState(false);
-            Toast.makeText(this, "Failed to build transaction.", Toast.LENGTH_SHORT).show();
-        }
+                if (pendingHwTx != null) {
+                    // MUST freeze the transaction before signing with Ledger
+                    pendingHwTx.freezeWith(client);
+                    
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Review and Confirm on your Ledger device.", Toast.LENGTH_LONG).show();
+                        // Ledger Hedera App expects the transaction body bytes
+                        hardwareWalletService.signTransaction(pendingHwTx.toBytes(), this);
+                    });
+                } else {
+                    runOnUiThread(() -> {
+                        setLoadingState(false);
+                        Toast.makeText(this, "Failed to build transaction.", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } catch (Exception e) {
+                Timber.e(e, "Error preparing HW transaction");
+                runOnUiThread(() -> {
+                    setLoadingState(false);
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 
     @Override
     public void onSignatureReceived(byte[] signature) {
         if (pendingHwTx != null && pendingHwPublicKeyHex != null) {
             try {
+                // Public key is needed to map the signature in the transaction body
                 PublicKey publicKey = PublicKey.fromString(pendingHwPublicKeyHex);
                 pendingHwTx.addSignature(publicKey, signature);
                 broadcastTransaction(pendingHwTx);
@@ -208,7 +234,7 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
                         data.put("hashscan", "https://hashscan.io/testnet/transaction/" + response.transactionId);
                         launchSuccessScreen(data);
                     } else {
-                        Toast.makeText(this, "Failed: " + receipt.status, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Transaction failed on network: " + receipt.status, Toast.LENGTH_LONG).show();
                     }
                 });
             } catch (Exception e) {
@@ -221,8 +247,14 @@ public class IdpayActivity extends AppCompatActivity implements HardwareWalletSe
     public void onSignatureError(Exception e) {
         runOnUiThread(() -> {
             setLoadingState(false);
-            Timber.e(e, "Transaction failed");
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Timber.e(e, "Hardware signing failed");
+            String message = e.getMessage() != null ? e.getMessage() : "Unknown Ledger error";
+            new AlertDialog.Builder(this)
+                    .setTitle("Ledger Error")
+                    .setMessage(message)
+                    .setPositiveButton("Retry", (d, w) -> initiateTransaction())
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
     }
 
