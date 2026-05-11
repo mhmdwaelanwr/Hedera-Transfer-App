@@ -122,16 +122,26 @@ public class TransferActivity extends AppCompatActivity {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, IdpayActivity.class));
         });
-        
+
         binding.receiveButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, ReceiveQrActivity.class));
         });
-        
+
         binding.seeAllButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
             startActivity(new Intent(this, HistoryActivity.class));
         });
+
+        View promoBanner = binding.getRoot().findViewById(R.id.promo_banner);
+        if (promoBanner != null) {
+            promoBanner.setOnClickListener(v -> {
+                VibrationManager.vibrate(this);
+                Intent intent = new Intent(this, HashScanActivity.class);
+                intent.putExtra("url", "https://hedera.aou.mlsaegypt.org/");
+                startActivity(intent);
+            });
+        }
 
         binding.copyAccountIdButton.setOnClickListener(v -> {
             VibrationManager.vibrate(this);
