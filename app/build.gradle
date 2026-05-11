@@ -58,3 +58,13 @@ dependencies {
     implementation "com.google.guava:guava:33.0.0-android"
     implementation "com.github.mik3y:usb-serial-for-android:3.7.0"
 }
+
+// Workaround for AGP 8.13.x issue where :app:check*Classpath tasks fail with
+//   Cannot fingerprint input property 'compileVersionMap' ... Info ... cannot be serialized
+// These tasks are advisory checks and are not required for assembling APKs.
+tasks.configureEach { t ->
+    if (t.name.startsWith("check") && t.name.endsWith("Classpath")) {
+        t.enabled = false
+    }
+}
+

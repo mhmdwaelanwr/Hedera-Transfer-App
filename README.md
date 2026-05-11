@@ -63,6 +63,36 @@ cd Hedera-Transfer-App
 2.  **Open in Android Studio:**  Launch Android Studio.  Select `File > Open...` and navigate to the `Hedera-Transfer-App` directory you just cloned.  Android Studio will automatically sync the Gradle project. Wait for the process to complete.
 3.  **Build and Run:**  Connect an Android device via USB or start an Android Virtual Device (AVD).  Click the "Run" button (green triangle) in Android Studio's toolbar.  The application will be built and installed on your selected device or emulator.**Note:** This application requires an internet connection to interact with the Hedera network and the backend API.
 
+## 🧰 Troubleshooting (Gradle cache corruption: `metadata.bin` missing)
+
+If Gradle fails with an error like:
+
+```
+Could not read workspace metadata from ~/.gradle/caches/<gradleVersion>/<cacheName>/<hash>/metadata.bin
+```
+
+This usually means the Gradle cache was left in a partially-written state.
+
+### Fix
+
+1) Close Android Studio (so no Gradle daemons keep files open).
+
+2) Delete the affected cache folder(s) and sync again. Common ones:
+
+* `~/.gradle/caches/<gradleVersion>/groovy-dsl`
+* `~/.gradle/caches/<gradleVersion>/dependencies-accessors`
+
+After deletion, Gradle will regenerate them automatically on the next sync/build.
+
+### One-command fix script (recommended)
+
+This repo includes a helper script that clears the known-corrupted Gradle caches and prints the next steps:
+
+```sh
+chmod +x scripts/fix-gradle-metadata-cache.sh
+./scripts/fix-gradle-metadata-cache.sh
+```
+
 ## 💡 Usage Guide
 
 Once the app is installed and launched:

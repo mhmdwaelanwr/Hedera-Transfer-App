@@ -6,6 +6,11 @@
       <GradleProjectSettings>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <!-- Use a project-local Gradle user home to avoid global ~/.gradle cache corruption issues. -->
+        <option name="serviceDirectoryPath" value="$PROJECT_DIR$/.gradle-user-home" />
+        <!-- Some IDE versions use different option names; keep them in sync. -->
+        <option name="gradleUserHome" value="$PROJECT_DIR$/.gradle-user-home" />
+        <option name="gradleServiceDirectory" value="$PROJECT_DIR$/.gradle-user-home" />
         <option name="gradleJvm" value="jbr-21" />
         <option name="modules">
           <set>
@@ -15,5 +20,7 @@
         </option>
       </GradleProjectSettings>
     </option>
+    <!-- Component-level setting used by many IDE versions for Gradle user home. -->
+    <option name="serviceDirectoryPath" value="$PROJECT_DIR$/.gradle-user-home" />
   </component>
 </project>

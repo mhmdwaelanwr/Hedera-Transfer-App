@@ -38,3 +38,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "HADERA"
 include ':app'
+

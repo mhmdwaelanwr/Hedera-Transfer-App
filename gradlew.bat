@@ -35,6 +35,14 @@ set APP_HOME=%DIRNAME%
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
+@rem If GRADLE_USER_HOME is not set, use a project-local Gradle user home.
+@rem This avoids hard failures when the global user cache gets corrupted.
+if "%GRADLE_USER_HOME%"=="" set "GRADLE_USER_HOME=%APP_HOME%\.gradle-user-home"
+
+@rem Also pass the Gradle user home as a JVM system property to ensure it is honored
+@rem during the earliest initialization (e.g. groovy-dsl cache compilation).
+set "JAVA_OPTS=%JAVA_OPTS% -Dgradle.user.home=%GRADLE_USER_HOME%"
+
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
