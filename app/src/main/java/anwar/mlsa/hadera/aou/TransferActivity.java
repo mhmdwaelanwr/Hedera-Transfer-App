@@ -11,14 +11,12 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
@@ -39,13 +37,10 @@ public class TransferActivity extends AppCompatActivity {
     private RequestNetwork networkReq;
     private RequestNetwork.RequestListener networkListener;
     private HistoryAdapter historyAdapter;
-    private BlogAdapter blogAdapter;
     private double exchangeRate = 0.0;
 
-    private static final String BLOG_API_URL = "https://mlsaegypt.org/api/blog";
     private static final String HEDERA_HISTORY_TAG = "hedera_history_tag";
     private static final String BALANCE_TAG = "balance_tag";
-    private static final String BLOG_TAG = "blog_tag";
     private static final String EXCHANGE_RATE_TAG = "exchange_rate_tag";
 
     private static class ExchangeRateResponse {
@@ -167,12 +162,6 @@ public class TransferActivity extends AppCompatActivity {
                 switch (tag) {
                     case BALANCE_TAG: handleBalanceResponse(response); break;
                     case HEDERA_HISTORY_TAG: handleHistoryApiResponse(response); break;
-                    case BLOG_TAG:
-                        ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-                        if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
-                        ArrayList<Post> posts = BlogApiParser.parse(response);
-                        if (blogAdapter != null) blogAdapter.updateData(posts);
-                        break;
                     case EXCHANGE_RATE_TAG: handleExchangeRateResponse(response); break;
                 }
             }
@@ -189,11 +178,6 @@ public class TransferActivity extends AppCompatActivity {
                         Timber.e("Failed to fetch history: %s", message);
                         showErrorSnackbar("Failed to load history.", this::loadRecentHistory);
                         break;
-                    case BLOG_TAG:
-                        ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-                        if (blogProgressBar != null) blogProgressBar.setVisibility(View.GONE);
-                        showErrorSnackbar("Failed to load blog.", this::loadBlogPosts);
-                        break;
                     case EXCHANGE_RATE_TAG:
                         Timber.e("Failed to fetch exchange rate: %s", message);
                         binding.exchangeRateTextView.setText("Rate N/A");
@@ -202,7 +186,6 @@ public class TransferActivity extends AppCompatActivity {
             }
 
             private void loadRecentHistory() { TransferActivity.this.loadRecentHistory(); }
-            private void loadBlogPosts() { TransferActivity.this.loadBlogPosts(); }
         };
     }
 
@@ -259,21 +242,6 @@ public class TransferActivity extends AppCompatActivity {
         networkReq.startRequestNetwork(RequestNetworkController.GET, url, HEDERA_HISTORY_TAG, networkListener);
     }
 
-    private void loadBlogPosts() {
-        if (binding.blogSectionStub.getParent() != null) {
-            binding.blogSectionStub.inflate();
-        }
-        RecyclerView blogRecyclerView = findViewById(R.id.recyclerview1);
-        ProgressBar blogProgressBar = findViewById(R.id.blog_progress_bar);
-        if (blogRecyclerView != null && blogRecyclerView.getAdapter() == null) {
-            blogRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            blogAdapter = new BlogAdapter(new ArrayList<>());
-            blogRecyclerView.setAdapter(blogAdapter);
-        }
-        if (blogProgressBar != null) blogProgressBar.setVisibility(View.VISIBLE);
-        networkReq.startRequestNetwork(RequestNetworkController.GET, BLOG_API_URL, BLOG_TAG, networkListener);
-    }
-
     private void handleBalanceResponse(String response) {
         try {
             Map<String, Object> map = new Gson().fromJson(response, new TypeToken<HashMap<String, Object>>() {}.getType());
@@ -285,7 +253,6 @@ public class TransferActivity extends AppCompatActivity {
                 binding.balanceTextView.setText(String.valueOf(map.get("hbars")));
                 updateBalanceCard();
                 updateBalanceInUSD();
-                loadBlogPosts();
             }
         } catch (Exception e) {
             Timber.e(e, "Could not parse balance response");

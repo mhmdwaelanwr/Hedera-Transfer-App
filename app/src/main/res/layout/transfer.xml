@@ -179,13 +179,13 @@
                         app:icon="@drawable/ic_arrow_downward" />
                 </LinearLayout>
 
-                <ViewStub
-                    android:id="@+id/blog_section_stub"
+                <!-- Always show the banner without requiring runtime inflation -->
+                <include
+                    android:id="@+id/blog_section_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:inflatedId="@+id/blog_section_container"
-                    android:layout="@layout/blog_section" />
+                    layout="@layout/blog_section" />
 
                 <RelativeLayout
                     android:layout_width="match_parent"
