@@ -42,8 +42,6 @@ public class TransferActivity extends AppCompatActivity {
     private BlogAdapter blogAdapter;
     private double exchangeRate = 0.0;
 
-    private static final String HEDERA_API_BASE_URL = "https://testnet.mirrornode.hedera.com";
-    private static final String HISTORY_API_ENDPOINT = "/api/v1/transactions";
     private static final String BLOG_API_URL = "https://mlsaegypt.org/api/blog";
     private static final String HEDERA_HISTORY_TAG = "hedera_history_tag";
     private static final String BALANCE_TAG = "balance_tag";
@@ -257,7 +255,7 @@ public class TransferActivity extends AppCompatActivity {
             updateHistoryView(new ArrayList<>());
             return;
         }
-        String url = HEDERA_API_BASE_URL + HISTORY_API_ENDPOINT + "?account.id=" + accountId + "&limit=5";
+        String url = ApiConfig.getTransactionsUrl(accountId, 5);
         networkReq.startRequestNetwork(RequestNetworkController.GET, url, HEDERA_HISTORY_TAG, networkListener);
     }
 

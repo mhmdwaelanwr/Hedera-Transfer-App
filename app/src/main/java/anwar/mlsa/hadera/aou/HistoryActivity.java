@@ -50,8 +50,6 @@ import java.util.stream.Collectors;
 
 public class HistoryActivity extends AppCompatActivity {
 
-    private static final String HEDERA_API_BASE_URL = "https://testnet.mirrornode.hedera.com";
-    private static final String HISTORY_API_ENDPOINT = "/api/v1/transactions";
     private static final String HISTORY_TAG = "history_tag";
 
     private final ArrayList<Object> displayList = new ArrayList<>();
@@ -286,14 +284,14 @@ public class HistoryActivity extends AppCompatActivity {
             nextUrl = null;
         }
 
-        String url = HEDERA_API_BASE_URL + HISTORY_API_ENDPOINT + "?account.id=" + accountId;
+        String url = ApiConfig.getTransactionsUrl(accountId);
         networkReq.startRequestNetwork(RequestNetworkController.GET, url, HISTORY_TAG, networkListener);
     }
 
     private void loadMoreTransactions() {
         if (nextUrl == null) return;
         swipeRefreshLayout.setRefreshing(true);
-        networkReq.startRequestNetwork(RequestNetworkController.GET, HEDERA_API_BASE_URL + nextUrl, "history_more_tag", networkListener);
+        networkReq.startRequestNetwork(RequestNetworkController.GET, ApiConfig.getTransactionsPageUrl(nextUrl), "history_more_tag", networkListener);
     }
 
     private void handleTransactionResponse(String response, boolean isLoadMore) {
