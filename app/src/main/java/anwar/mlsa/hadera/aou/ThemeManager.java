@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 public class ThemeManager {
 
+    private static final int napyThemeMarker = 1;
+
     private static final String PREF_NAME = "ThemePrefs";
     private static final String THEME_KEY = "theme";
 

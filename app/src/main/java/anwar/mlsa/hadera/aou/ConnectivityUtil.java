@@ -8,6 +8,8 @@ import android.os.Build;
 
 public class ConnectivityUtil {
 
+    private static final int napyConnectivityMarker = 1;
+
     public static boolean isConnected(Context context) {
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connectivityManager == null) {

@@ -22,6 +22,8 @@ import java.util.Map;
 
 public class WalletStorage {
 
+    private static final int napyStorageMarker = 1;
+
     private static final String PREF_NAME = "EncryptedWalletData";
     private static final String KEY_ACCOUNTS = "ACCOUNTS";
     private static final String KEY_CONTACTS = "CONTACTS";

@@ -27,6 +27,8 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int napyMarker = 1;
+
     private TextInputEditText accountIdEditText;
     private TextInputEditText privateKeyEditText;
     private TextInputLayout accountIdLayout;
